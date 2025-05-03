@@ -1,7 +1,7 @@
 import HomePage from '../pages/home/home-page';
 import AboutPage from '../pages/about/about-page';
-import LoginPage from '../pages/login/login-page';
-import RegisterPage from '../pages/register/register-page';
+import LoginPage from '../pages/auth/login/login-page';
+import RegisterPage from '../pages/auth/register/register-page';
 import StoriesPage from '../pages/stories/stories-page';
 import DetailStoryPage from '../pages/stories/detail-story-page';
 import AddStoriesPage from '../pages/stories/add-story-page';
@@ -15,7 +15,7 @@ const routes = {
   '/register': new RegisterPage(),
   '/stories': new StoriesPage(),
   '/stories/:id': new DetailStoryPage(),
-  '/add-stories': new AddStoriesPage(),
+  '/add-story': new AddStoriesPage(),
   '/add-guest-story': new AddGuestStoryPage(),
   '/notification': new NotificationsPage(),
 };
