@@ -1,20 +1,25 @@
-// CSS imports
+// Import CSS
 import '../styles/styles.css';
 
+// Import Modul Utama
 import App from './pages/app';
 import Auth from './utils/auth';
 
+/**
+ * Inisialisasi aplikasi saat DOM sudah siap
+ */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize authentication
+  // Inisialisasi autentikasi dan navigasi
   Auth.updateNavigation();
   
+  // Inisialisasi aplikasi utama
   const app = new App({
     content: document.querySelector('#main-content'),
     drawerButton: document.querySelector('#drawer-button'),
     navigationDrawer: document.querySelector('#navigation-drawer'),
   });
   
-  // Add logout event listener
+  // Menambahkan event listener untuk tombol logout
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
@@ -24,8 +29,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Render halaman awal
   await app.renderPage();
 
+  // Menangani perubahan hash URL untuk navigasi
   window.addEventListener('hashchange', async () => {
     await app.renderPage();
   });

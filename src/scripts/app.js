@@ -1,11 +1,18 @@
 import Auth from './utils/auth';
 
+/**
+ * Kelas utama aplikasi yang menangani inisialisasi dan navigasi
+ */
 const app = {
+  /**
+   * Inisialisasi aplikasi
+   * Menangani setup awal dan event listener
+   */
   async init() {
-    // Initialize authentication
+    // Inisialisasi autentikasi dan navigasi
     Auth.updateNavigation();
 
-    // Add logout event listener
+    // Menambahkan event listener untuk tombol logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', (e) => {

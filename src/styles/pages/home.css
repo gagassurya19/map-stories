@@ -1,3 +1,4 @@
+/* Hero Section */
 .hero {
   background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
   color: white;
@@ -11,6 +12,7 @@
   margin: 0 auto;
 }
 
+/* Judul Hero */
 .hero h1 {
   font-size: 3.5rem;
   font-weight: 800;
@@ -19,12 +21,14 @@
   letter-spacing: -0.5px;
 }
 
+/* Deskripsi Hero */
 .hero p {
   font-size: 1.25rem;
   margin-bottom: 2rem;
   opacity: 0.9;
 }
 
+/* Tombol Call-to-Action */
 .cta-button {
   background-color: #48bb78;
   color: white;
@@ -43,6 +47,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
+/* Bagian Fitur */
 .features {
   max-width: 1200px;
   margin: 0 auto;
@@ -53,6 +58,7 @@
   margin-bottom: 4rem;
 }
 
+/* Kartu Fitur */
 .feature-card {
   background: white;
   padding: 2rem;
@@ -67,6 +73,7 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* Judul Kartu Fitur */
 .feature-card h2 {
   color: #2d3748;
   font-size: 1.5rem;
@@ -76,11 +83,13 @@
   gap: 0.5rem;
 }
 
+/* Deskripsi Kartu Fitur */
 .feature-card p {
   color: #4a5568;
   line-height: 1.6;
 }
 
+/* Bagian Preview Peta */
 .map-preview {
   background-color: #f7fafc;
   padding: 4rem 2rem;
@@ -93,17 +102,20 @@
   text-align: center;
 }
 
+/* Judul Preview Peta */
 .preview-content h2 {
   color: #2d3748;
   font-size: 2rem;
   margin-bottom: 1rem;
 }
 
+/* Deskripsi Preview Peta */
 .preview-content p {
   color: #4a5568;
   margin-bottom: 2rem;
 }
 
+/* Container Peta */
 .map-container {
   height: 500px;
   border-radius: 1rem;
@@ -112,7 +124,7 @@
   border: 1px solid #e2e8f0;
 }
 
-/* Leaflet Popup Styles */
+/* Gaya Popup Marker */
 .marker-popup {
   padding: 0.5rem;
 }
@@ -135,7 +147,7 @@
   font-size: 0.8rem;
 }
 
-/* Leaflet Custom Styles */
+/* Gaya Kustom Leaflet */
 .leaflet-popup-content-wrapper {
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -145,6 +157,7 @@
   background: white;
 }
 
+/* Responsive Design */
 @media (max-width: 768px) {
   .hero {
     padding: 4rem 1rem;

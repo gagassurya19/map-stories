@@ -3,23 +3,34 @@ import Auth from '../../utils/auth';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
+/**
+ * Kelas DetailStoryPage
+ * Menangani tampilan dan interaksi halaman detail cerita
+ */
 export default class DetailStoryPage {
+  /**
+   * Merender konten halaman detail cerita
+   * @returns {string} HTML string untuk halaman detail cerita
+   */
   async render() {
-    // Check authentication
+    // Memeriksa autentikasi
     if (!Auth.checkAuth()) {
       return '';
     }
     return `
+      <!-- Container Utama -->
       <section class="max-w-4xl mx-auto px-4 py-8">
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
           <div class="p-6">
+            <!-- Konten Detail Cerita -->
             <div id="storyDetail">
-              <!-- Story details will be loaded here -->
+              <!-- Detail cerita akan dimuat di sini -->
             </div>
+            <!-- Tombol Kembali -->
             <div class="mt-8 text-center">
               <a href="#/stories" class="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-sm hover:shadow-md">
-                <i class="bi bi-arrow-left mr-2"></i>
-                Back to Stories
+                <i class="bi bi-arrow-left mr-2" aria-hidden="true"></i>
+                Kembali ke Daftar Cerita
               </a>
             </div>
           </div>
@@ -28,15 +39,23 @@ export default class DetailStoryPage {
     `;
   }
 
+  /**
+   * Menangani interaksi setelah halaman dirender
+   * Memuat detail cerita berdasarkan ID
+   */
   async afterRender() {
     const storyId = window.location.hash.split('/')[2];
     await this.loadStoryDetail(storyId);
   }
 
+  /**
+   * Memuat detail cerita dari API
+   * @param {string} storyId - ID cerita yang akan dimuat
+   */
   async loadStoryDetail(storyId) {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.token) {
-      alert('Please login first');
+      alert('Silakan login terlebih dahulu');
       window.location.hash = '#/login';
       return;
     }
@@ -50,54 +69,62 @@ export default class DetailStoryPage {
           this.initMap(responseData.story);
         }
       } else {
-        alert(responseData.message || 'Failed to load story details');
+        alert(responseData.message || 'Gagal memuat detail cerita');
       }
     } catch (error) {
       console.error('Error loading story detail:', error);
-      alert('An error occurred while loading story details');
+      alert('Terjadi kesalahan saat memuat detail cerita');
     }
   }
 
+  /**
+   * Menampilkan detail cerita di halaman
+   * @param {Object} story - Data cerita yang akan ditampilkan
+   */
   displayStoryDetail(story) {
     const storyDetail = document.getElementById('storyDetail');
     storyDetail.innerHTML = `
       <div class="space-y-6">
-        <!-- Story Image and Header -->
+        <!-- Gambar dan Header Cerita -->
         <div class="relative">
           <img 
             src="${story.photoUrl}" 
             class="w-full h-[400px] object-cover rounded-lg shadow-md" 
-            alt="${story.name}'s story"
+            alt="Cerita dari ${story.name}"
           >
           <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-lg"></div>
           <div class="absolute bottom-0 left-0 right-0 p-6">
             <h2 class="text-3xl font-bold text-white mb-2">${story.name}</h2>
             <p class="text-gray-200 flex items-center">
-              <i class="bi bi-calendar3 mr-2"></i>
-              Posted on ${new Date(story.createdAt).toLocaleDateString()}
+              <i class="bi bi-calendar3 mr-2" aria-hidden="true"></i>
+              Diposting pada ${new Date(story.createdAt).toLocaleDateString()}
             </p>
           </div>
         </div>
 
-        <!-- Story Content -->
+        <!-- Konten Cerita -->
         <div class="bg-gray-50 rounded-lg p-6 shadow-sm">
           <p class="text-lg text-gray-700 leading-relaxed">${story.description}</p>
         </div>
 
         ${story.lat && story.lon ? `
-          <!-- Location Section -->
+          <!-- Bagian Lokasi -->
           <div class="mb-4">
             <h5 class="mb-3 flex items-center">
-              <i class="bi bi-geo-alt-fill text-blue-600 mr-2"></i>
-              Location
+              <i class="bi bi-geo-alt-fill text-blue-600 mr-2" aria-hidden="true"></i>
+              Lokasi
             </h5>
-            <div id="storyMap" style="height: 300px; border-radius: 8px; overflow: hidden;" class="shadow-sm"></div>
+            <div id="storyMap" style="height: 300px; border-radius: 8px; overflow: hidden;" class="shadow-sm" role="application" aria-label="Peta lokasi cerita"></div>
           </div>
         ` : ''}
       </div>
     `;
   }
 
+  /**
+   * Inisialisasi peta untuk menampilkan lokasi cerita
+   * @param {Object} story - Data cerita yang berisi informasi lokasi
+   */
   initMap(story) {
     const mapContainer = document.getElementById('storyMap');
     if (!mapContainer) return;
@@ -107,13 +134,15 @@ export default class DetailStoryPage {
 
     if (isNaN(lat) || isNaN(lon)) return;
 
+    // Inisialisasi peta
     const map = L.map('storyMap').setView([lat, lon], 15);
 
+    // Menambahkan layer peta
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
 
-    // Create a custom marker icon
+    // Membuat ikon marker kustom
     const storyIcon = L.divIcon({
       className: 'story-marker',
       html: `
@@ -123,6 +152,7 @@ export default class DetailStoryPage {
       iconAnchor: [8, 8]
     });
 
+    // Menambahkan marker dan popup
     L.marker([lat, lon], { icon: storyIcon })
       .addTo(map)
       .bindPopup(`

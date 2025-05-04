@@ -3,18 +3,28 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Auth from '../../utils/auth';
 
+/**
+ * Kelas StoriesPage
+ * Menangani tampilan dan interaksi halaman daftar cerita
+ */
 export default class StoriesPage {
+  /**
+   * Merender konten halaman cerita
+   * @returns {string} HTML string untuk halaman cerita
+   */
   async render() {
-    // Check authentication
+    // Memeriksa autentikasi
     if (!Auth.checkAuth()) {
       return '';
     }
 
     return `
+      <!-- Container Utama -->
       <section style="display: grid; grid-template-columns: 300px 1fr; height: 100vh;" aria-label="Stories and Map View">
-        <!-- Stories sidebar -->
+        <!-- Sidebar Daftar Cerita -->
         <div style="border-right: 1px solid #dee2e6; overflow: hidden; position: relative;" role="complementary" aria-label="Stories List">
           <div class="p-2 overflow-y-auto h-full">
+            <!-- Header dan Tombol Tambah -->
             <div class="flex items-center justify-between mb-2">
               <h1 class="text-lg font-medium">Stories</h1>
               <div class="flex items-center gap-2">
@@ -28,8 +38,9 @@ export default class StoriesPage {
                 </a>
               </div>
             </div>
+            <!-- Daftar Cerita -->
             <div id="storiesList" class="space-y-2 pb-12" role="list">
-              <!-- Loading indicator -->
+              <!-- Indikator Loading -->
               <div class="text-center py-3" role="status" aria-live="polite">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
                   <span class="visually-hidden">Loading stories...</span>
@@ -38,6 +49,7 @@ export default class StoriesPage {
               </div>
             </div>
           </div>
+          <!-- Tombol Load More -->
           <div class="fixed bottom-4 left-4 right-4 max-w-[272px]">
             <button
               id="loadMoreBtn"
@@ -49,8 +61,9 @@ export default class StoriesPage {
           </div>
         </div>
         
-        <!-- Map section -->
+        <!-- Bagian Peta -->
         <div style="position: relative;" role="complementary" aria-label="Map View">
+          <!-- Tombol Kontrol Peta -->
           <div class="absolute top-4 right-24 z-[1000] flex gap-2">
             <button
               id="currentLocationBtn"
@@ -69,31 +82,42 @@ export default class StoriesPage {
               <span class="text-sm">Reset View</span>
             </button>
           </div>
+          <!-- Container Peta -->
           <div id="storiesMap" style="height: 100%; width: 100%;" role="application" aria-label="Interactive map showing story locations"></div>
         </div>
       </section>
     `;
   }
 
+  /**
+   * Menangani interaksi setelah halaman dirender
+   * Mengatur inisialisasi peta dan loading cerita
+   */
   async afterRender() {
+    // Inisialisasi variabel
     this.page = 1;
     this.size = 10;
     this.stories = [];
     this.markers = [];
     this.map = null;
     
-    // Initialize the map
+    // Inisialisasi peta
     this.initMap();
     
+    // Load cerita dan setup tombol load more
     await this.loadStories();
     this.setupLoadMore();
   }
 
+  /**
+   * Inisialisasi peta Leaflet
+   * Mengatur layer peta dan kontrol
+   */
   initMap() {
-    // Initialize the map
+    // Inisialisasi peta dengan view Indonesia
     this.map = L.map('storiesMap').setView([-2.5489, 118.0149], 4);
 
-    // Define different tile layers
+    // Definisi layer peta
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap contributors'
     });
@@ -106,23 +130,23 @@ export default class StoriesPage {
       attribution: '© OpenTopoMap'
     });
 
-    // Add layer control
+    // Konfigurasi layer dasar
     const baseMaps = {
       "Street": osmLayer,
       "Satellite": satelliteLayer,
       "Terrain": terrainLayer
     };
 
-    // Add default layer
+    // Menambahkan layer default
     osmLayer.addTo(this.map);
 
-    // Add layer control to map
+    // Menambahkan kontrol layer
     L.control.layers(baseMaps).addTo(this.map);
 
-    // Add scale control
+    // Menambahkan kontrol skala
     L.control.scale().addTo(this.map);
 
-    // Add current location and reset view buttons
+    // Menambahkan event listener untuk tombol kontrol
     const currentLocationBtn = document.getElementById('currentLocationBtn');
     const resetMapBtn = document.getElementById('resetMapBtn');
 
@@ -135,8 +159,12 @@ export default class StoriesPage {
     }
   }
 
+  /**
+   * Mereset tampilan peta ke view Indonesia
+   * Menyesuaikan zoom untuk menampilkan semua marker
+   */
   resetMapView() {
-    // Filter stories that are in Indonesia (roughly between 6°N to 11°S and 95°E to 141°E)
+    // Filter cerita yang berada di Indonesia
     const storiesInIndonesia = this.stories.filter(story => {
       const lat = parseFloat(story.lat);
       const lon = parseFloat(story.lon);
@@ -147,17 +175,17 @@ export default class StoriesPage {
     
     if (storiesInIndonesia.length > 0) {
       try {
-        // Create bounds to fit all markers
+        // Membuat bounds untuk semua marker
         const bounds = L.latLngBounds();
         
-        // Add all story locations to bounds
+        // Menambahkan semua lokasi ke bounds
         storiesInIndonesia.forEach(story => {
           const lat = parseFloat(story.lat);
           const lon = parseFloat(story.lon);
           bounds.extend([lat, lon]);
         });
         
-        // Fit the map to show all markers
+        // Menyesuaikan tampilan peta
         if (storiesInIndonesia.length > 1) {
           this.map.fitBounds(bounds, { 
             padding: [30, 30],
@@ -165,21 +193,25 @@ export default class StoriesPage {
             minZoom: 4
           });
         } else if (storiesInIndonesia.length === 1) {
-          // If there's only one marker, center on it with a good zoom level
+          // Jika hanya ada satu marker, fokus ke marker tersebut
           const story = storiesInIndonesia[0];
           this.map.setView([parseFloat(story.lat), parseFloat(story.lon)], 12);
         }
       } catch (error) {
         console.error('Error resetting map view:', error);
-        // Fallback to Indonesia view if there's an error
+        // Fallback ke view Indonesia jika terjadi error
         this.map.setView([-2.5489, 118.0149], 4);
       }
     } else {
-      // If no stories have location in Indonesia, set Indonesia view
+      // Jika tidak ada cerita di Indonesia, tampilkan view Indonesia
       this.map.setView([-2.5489, 118.0149], 4);
     }
   }
 
+  /**
+   * Memuat cerita dari API
+   * Menampilkan cerita dan memperbarui peta
+   */
   async loadStories() {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || !user.token) {
@@ -194,7 +226,7 @@ export default class StoriesPage {
         this.stories = [...this.stories, ...responseData.listStory];
         this.displayStories();
         this.updateMap();
-        // Reset map view after loading stories
+        // Reset tampilan peta setelah memuat cerita
         this.resetMapView();
       } else {
         alert(responseData.message || 'Failed to load stories');
@@ -205,6 +237,9 @@ export default class StoriesPage {
     }
   }
 
+  /**
+   * Menampilkan daftar cerita di sidebar
+   */
   displayStories() {
     const storiesList = document.getElementById('storiesList');
     
@@ -249,7 +284,7 @@ export default class StoriesPage {
                 data-lon="${story.lon}"
                 aria-label="View this story on map"
               >
-                <i class="bi bi-map mr-1" aria-hidden="true"></i> View on map
+                <i class="bi bi-geo-alt" aria-hidden="true"></i> View on map
               </button>
             ` : ''}
           </div>
@@ -257,183 +292,79 @@ export default class StoriesPage {
       </div>
     `).join('');
 
-    // Add event listeners for location navigation
+    // Menambahkan event listener untuk tombol navigasi
     document.querySelectorAll('.navigate-btn').forEach(button => {
       button.addEventListener('click', () => {
         const lat = parseFloat(button.dataset.lat);
         const lon = parseFloat(button.dataset.lon);
-        if (!isNaN(lat) && !isNaN(lon)) {
-          // Find the corresponding story
-          const story = this.stories.find(s => 
-            parseFloat(s.lat) === lat && parseFloat(s.lon) === lon
-          );
-          
-          if (story) {
-            // Find the marker for this story
-            const marker = this.markers.find(m => 
-              m.getLatLng().lat === lat && m.getLatLng().lng === lon
-            );
-            
-            if (marker) {
-              // Center map on the location
-              this.map.setView([lat, lon], 15);
-              // Open the popup
-              marker.openPopup();
-            }
-          }
-        }
+        this.map.setView([lat, lon], 15);
       });
     });
   }
 
+  /**
+   * Memperbarui marker di peta
+   */
   updateMap() {
-    // Check if map is initialized
-    if (!this.map) {
-      console.warn('Map not initialized yet, cannot update markers');
-      return;
-    }
-
-    // Clear existing markers
-    this.markers.forEach(marker => this.map.removeLayer(marker));
+    // Hapus marker lama
+    this.markers.forEach(marker => marker.remove());
     this.markers = [];
 
-    // Filter stories that are in Indonesia
-    const storiesInIndonesia = this.stories.filter(story => {
-      const lat = parseFloat(story.lat);
-      const lon = parseFloat(story.lon);
-      return !isNaN(lat) && !isNaN(lon) && 
-             lat >= -11 && lat <= 6 && 
-             lon >= 95 && lon <= 141;
-    });
-    
-    if (storiesInIndonesia.length > 0) {
-      try {
-        // Create bounds to fit all markers
-        const bounds = L.latLngBounds();
+    // Tambahkan marker baru
+    this.stories.forEach(story => {
+      if (story.lat && story.lon) {
+        const lat = parseFloat(story.lat);
+        const lon = parseFloat(story.lon);
         
-        // Add markers for each story
-        storiesInIndonesia.forEach(story => {
-          // Convert lat and lon to numbers if they're strings
-          const lat = parseFloat(story.lat);
-          const lon = parseFloat(story.lon);
+        if (!isNaN(lat) && !isNaN(lon)) {
+          const marker = L.marker([lat, lon])
+            .bindPopup(`
+              <div class="marker-popup">
+                <img src="${story.photoUrl}" class="w-full h-32 object-cover mb-2 rounded" alt="Story image">
+                <h3 class="font-medium">${story.name}</h3>
+                <p class="text-sm text-gray-600">${story.description}</p>
+                <a href="#/stories/${story.id}" class="text-xs text-blue-600 hover:text-blue-800">See details</a>
+              </div>
+            `);
           
-          if (!isNaN(lat) && !isNaN(lon)) {
-            // Create a custom marker icon
-            const storyIcon = L.divIcon({
-              className: 'story-marker',
-              html: `
-                <div style="background-color: #2b6cb0; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
-              `,
-              iconSize: [16, 16],
-              iconAnchor: [8, 8]
-            });
-            
-            const marker = L.marker([lat, lon], { icon: storyIcon })
-              .addTo(this.map)
-              .bindPopup(`
-                <div class="text-center">
-                  <img src="${story.photoUrl}" class="img-fluid rounded mb-2" style="max-height: 100px; width: auto;" alt="${story.name}">
-                  <h6>${story.name}</h6>
-                  <p class="small text-muted mb-2">${story.description.substring(0, 60)}${story.description.length > 60 ? '...' : ''}</p>
-                  <a href="#/stories/${story.id}" class="btn btn-sm btn-primary d-block">View Details</a>
-                </div>
-              `);
-            
-            this.markers.push(marker);
-            bounds.extend([lat, lon]);
-          }
-        });
-        
-        // Fit the map to show all markers
-        if (this.markers.length > 1) {
-          this.map.fitBounds(bounds, { padding: [30, 30] });
-        } else if (this.markers.length === 1) {
-          // If there's only one marker, center on it with a good zoom level
-          const story = storiesInIndonesia[0];
-          this.map.setView([parseFloat(story.lat), parseFloat(story.lon)], 12);
+          marker.addTo(this.map);
+          this.markers.push(marker);
         }
-      } catch (error) {
-        console.error('Error updating map:', error);
       }
-    } else {
-      // If no stories have location in Indonesia, set Indonesia view
-      this.map.setView([-2.5489, 118.0149], 4);
+    });
+  }
+
+  /**
+   * Mengatur tombol load more
+   */
+  setupLoadMore() {
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', async () => {
+        this.page += 1;
+        await this.loadStories();
+      });
     }
   }
 
-  setupLoadMore() {
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    loadMoreBtn.addEventListener('click', async () => {
-      this.page++;
-      await this.loadStories();
-    });
-  }
-
+  /**
+   * Zoom ke lokasi pengguna saat ini
+   */
   async zoomToCurrentLocation() {
-    try {
-      // Show loading state
-      const currentLocationBtn = document.getElementById('currentLocationBtn');
-      if (currentLocationBtn) {
-        currentLocationBtn.disabled = true;
-        currentLocationBtn.innerHTML = `
-          <div class="spinner-border spinner-border-sm text-gray-700" role="status">
-            <span class="visually-hidden">Loading...</span>
-          </div>
-          <span class="text-sm">Getting location...</span>
-        `;
-      }
-
-      // Get current position
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-
-      // Check if location is in Indonesia
-      if (latitude >= -11 && latitude <= 6 && longitude >= 95 && longitude <= 141) {
-        // Add a marker for current location
-        const currentLocationIcon = L.divIcon({
-          className: 'current-location-marker',
-          html: `
-            <div style="background-color: #dc2626; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
-          `,
-          iconSize: [22, 22],
-          iconAnchor: [11, 11]
+    if (navigator.geolocation) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject);
         });
 
-        // Remove existing current location marker if any
-        if (this.currentLocationMarker) {
-          this.map.removeLayer(this.currentLocationMarker);
-        }
-
-        // Add new marker
-        this.currentLocationMarker = L.marker([latitude, longitude], { icon: currentLocationIcon })
-          .addTo(this.map)
-          .bindPopup('Your current location');
-
-        // Zoom to current location
+        const { latitude, longitude } = position.coords;
         this.map.setView([latitude, longitude], 15);
-      } else {
-        alert('Your location is outside of Indonesia. The map will stay focused on Indonesia.');
+      } catch (error) {
+        console.error('Error getting location:', error);
+        alert('Unable to get your current location');
       }
-    } catch (error) {
-      console.error('Error getting location:', error);
-      alert('Unable to get your location. Please make sure location services are enabled.');
-    } finally {
-      // Reset button state
-      const currentLocationBtn = document.getElementById('currentLocationBtn');
-      if (currentLocationBtn) {
-        currentLocationBtn.disabled = false;
-        currentLocationBtn.innerHTML = `
-          <i class="bi bi-geo-alt"></i>
-          <span class="text-sm">My Location</span>
-        `;
-      }
+    } else {
+      alert('Geolocation is not supported by your browser');
     }
   }
 }

@@ -1,10 +1,11 @@
+/* Reset CSS */
 * {
   margin: 0;
   padding: 0;
-
   box-sizing: border-box;
 }
 
+/* Gaya Dasar */
 body {
   font-family: 'Arial', sans-serif;
 }
@@ -15,7 +16,7 @@ body {
   max-width: 1300px;
 }
 
-/* Skip to content link */
+/* Link Skip to Content untuk Aksesibilitas */
 .skip-to-content {
   position: absolute;
   top: -40px;
@@ -31,7 +32,7 @@ body {
   top: 0;
 }
 
-/* View Transitions */
+/* Animasi Transisi Halaman */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -50,7 +51,7 @@ body {
   animation: slideIn 0.3s ease-out;
 }
 
-/* Focus styles for better accessibility */
+/* Gaya Focus untuk Aksesibilitas */
 :focus {
   outline: 2px solid #2c5282;
   outline-offset: 2px;
@@ -65,7 +66,7 @@ body {
   outline-offset: 2px;
 }
 
-/* Visually hidden class for screen readers */
+/* Kelas untuk Menyembunyikan Elemen dari Screen Reader */
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -78,21 +79,20 @@ body {
   border: 0;
 }
 
+/* Header */
 header {
   background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .main-header {
-  /* min-height: 90px;
-  padding-block: 20px; */
-
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 30px;
 }
 
+/* Nama Brand */
 .brand-name {
   font-size: 1.5rem;
   font-weight: bold;
@@ -105,6 +105,7 @@ header {
   opacity: 0.9;
 }
 
+/* Navigasi Drawer */
 .navigation-drawer {
   min-height: 100vh;
   width: 200px;
@@ -127,6 +128,7 @@ header {
   transform: translateX(0);
 }
 
+/* Tombol Drawer */
 .drawer-button {
   padding: 8px;
   border: 0;
@@ -147,6 +149,7 @@ header {
   opacity: 0.9;
 }
 
+/* Daftar Navigasi */
 .nav-list {
   list-style: none;
 
@@ -171,13 +174,12 @@ header {
   text-decoration: none;
 }
 
-/* MAIN */
+/* Konten Utama */
 .main-content {
-  /* padding-block: 20px; */
   min-height: calc(100vh - 90px);
 }
 
-/* Loading states */
+/* Status Loading */
 .loading {
   position: relative;
   pointer-events: none;
@@ -193,20 +195,21 @@ header {
   justify-content: center;
 }
 
-/* Error states */
+/* Status Error */
 .error-message {
   color: #dc2626;
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
 
-/* Success states */
+/* Status Sukses */
 .success-message {
   color: #059669;
   font-size: 0.875rem;
   margin-top: 0.5rem;
 }
 
+/* Responsive Design untuk Desktop */
 @media screen and (width > 1000px) {
   .navigation-drawer {
     min-height: auto;

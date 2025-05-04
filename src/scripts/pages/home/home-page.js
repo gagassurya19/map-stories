@@ -1,9 +1,18 @@
 import '../../../styles/pages/home.css';
 import { initMap } from '../../utils/map.js';
 
+/**
+ * Kelas HomePage
+ * Menangani tampilan dan interaksi halaman utama aplikasi
+ */
 export default class HomePage {
+  /**
+   * Merender konten halaman utama
+   * @returns {string} HTML string untuk halaman utama
+   */
   async render() {
     return `
+      <!-- Hero Section -->
       <section class="hero">
         <div class="hero-content">
           <h1>MapNotes</h1>
@@ -12,6 +21,7 @@ export default class HomePage {
         </div>
       </section>
 
+      <!-- Fitur Utama -->
       <section class="features">
         <div class="feature-card">
           <h2>🗺️ Location-Based Notes</h2>
@@ -27,6 +37,7 @@ export default class HomePage {
         </div>
       </section>
 
+      <!-- Preview Peta -->
       <section class="map-preview">
         <div class="preview-content">
           <h2>Your Notes on the Map</h2>
@@ -37,16 +48,21 @@ export default class HomePage {
     `;
   }
 
+  /**
+   * Menangani interaksi setelah halaman dirender
+   * Mengatur event listener dan inisialisasi peta
+   */
   async afterRender() {
+    // Menangani klik tombol CTA
     const ctaButton = document.querySelector('.cta-button');
     if (ctaButton) {
       ctaButton.addEventListener('click', () => {
-        // Navigate to notes page or open note creation
+        // Navigasi ke halaman cerita
         window.location.href = '#/stories';
       });
     }
 
-    // Initialize the map
+    // Inisialisasi peta
     const map = initMap('map-container');
   }
 }

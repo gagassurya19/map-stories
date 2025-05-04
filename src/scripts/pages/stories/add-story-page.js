@@ -3,20 +3,31 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Auth from '../../utils/auth';
 
+/**
+ * Kelas AddStoriesPage
+ * Menangani tampilan dan interaksi halaman tambah cerita baru
+ */
 export default class AddStoriesPage {
+  /**
+   * Merender konten halaman tambah cerita
+   * @returns {string} HTML string untuk halaman tambah cerita
+   */
   async render() {
-    // Check authentication
+    // Memeriksa autentikasi
     if (!Auth.checkAuth()) {
       return '';
     }
 
     return `
-      <section style="max-width: 800px; margin: 40px auto; padding: 20px;" role="main" aria-label="Add New Story">
+      <!-- Container Utama -->
+      <section style="max-width: 800px; margin: 40px auto; padding: 20px;" role="main" aria-label="Tambah Cerita Baru">
         <div style="background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 30px;">
-          <h2 style="text-align: center; margin-bottom: 30px; font-size: 28px; color: #333;">Add a New Story</h2>
-          <form id="addStoryForm" aria-label="Story submission form">
+          <h2 style="text-align: center; margin-bottom: 30px; font-size: 28px; color: #333;">Tambah Cerita Baru</h2>
+          <!-- Form Tambah Cerita -->
+          <form id="addStoryForm" aria-label="Form pengiriman cerita">
+            <!-- Deskripsi Cerita -->
             <div style="margin-bottom: 20px;">
-              <label for="description" style="display: block; margin-bottom: 8px; font-weight: 600;">Story Description</label>
+              <label for="description" style="display: block; margin-bottom: 8px; font-weight: 600;">Deskripsi Cerita</label>
               <textarea 
                 id="description" 
                 name="description"
@@ -27,8 +38,9 @@ export default class AddStoriesPage {
               ></textarea>
             </div>
 
+            <!-- Upload Foto -->
             <div class="mb-3">
-              <label class="form-label">Upload Photo</label>
+              <label class="form-label">Unggah Foto</label>
               <input 
                 type="file" 
                 id="photoFile" 
@@ -42,43 +54,45 @@ export default class AddStoriesPage {
                 type="button" 
                 id="openCameraBtn" 
                 style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px;"
-                aria-label="Open camera to take photo"
+                aria-label="Buka kamera untuk mengambil foto"
               >
-                Open Camera
+                Buka Kamera
               </button>
 
+              <!-- Preview Gambar -->
               <div id="previewContainer" style="margin-top: 10px; display: none;">
-                <img id="imagePreview" src="" alt="Photo preview" style="max-width: 100%; border-radius: 10px;" />
+                <img id="imagePreview" src="" alt="Preview foto" style="max-width: 100%; border-radius: 10px;" />
               </div>
             </div>
 
-            <!-- Camera Modal -->
-            <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;" role="dialog" aria-label="Camera capture modal">
+            <!-- Modal Kamera -->
+            <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;" role="dialog" aria-label="Modal pengambilan foto">
               <div style="background: white; padding: 20px; border-radius: 10px; position: relative;">
                 <video 
                   id="cameraStream" 
                   autoplay 
                   playsinline 
                   style="width: 100%; border-radius: 10px;"
-                  aria-label="Camera preview"
+                  aria-label="Preview kamera"
                 ></video>
                 <button 
                   id="captureBtn" 
                   style="margin-top: 10px; padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px;"
-                  aria-label="Capture photo"
+                  aria-label="Ambil foto"
                 >
-                  Capture
+                  Ambil Foto
                 </button>
                 <button 
                   id="closeCameraBtn" 
                   style="position: absolute; top: 10px; right: 10px; background-color: transparent; border: none; font-size: 20px; color: #333;"
-                  aria-label="Close camera"
+                  aria-label="Tutup kamera"
                 >
                   &times;
                 </button>
               </div>
             </div>
 
+            <!-- Opsi Lokasi -->
             <div style="margin-bottom: 20px;">
               <label style="display: flex; align-items: center;">
                 <input 
@@ -87,18 +101,19 @@ export default class AddStoriesPage {
                   name="includeLocation"
                   style="margin-right: 10px;"
                 >
-                Include My Location
+                Sertakan Lokasi Saya
               </label>
               <button 
                 type="button" 
                 id="getCurrentLocation" 
                 style="margin-top: 10px; padding: 8px 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; display: none;"
-                aria-label="Use current location"
+                aria-label="Gunakan lokasi saat ini"
               >
-                Use Current Location
+                Gunakan Lokasi Saat Ini
               </button>
             </div>
 
+            <!-- Form Lokasi -->
             <div id="locationFields" style="display: none; margin-bottom: 20px;">
               <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1;">
@@ -124,24 +139,27 @@ export default class AddStoriesPage {
                   >
                 </div>
               </div>
-              <div id="mapContainer" style="height: 300px; margin-top: 10px; border-radius: 6px; overflow: hidden;" role="application" aria-label="Map for selecting story location"></div>
+              <!-- Container Peta -->
+              <div id="mapContainer" style="height: 300px; margin-top: 10px; border-radius: 6px; overflow: hidden;" role="application" aria-label="Peta untuk memilih lokasi cerita"></div>
             </div>
 
+            <!-- Tombol Submit -->
             <button 
               type="submit"
               style="width: 100%; background-color: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer;"
-              aria-label="Submit story"
+              aria-label="Kirim cerita"
             >
-              Submit Story
+              Kirim Cerita
             </button>
           </form>
+          <!-- Tombol Kembali -->
           <div style="text-align: center; margin-top: 20px;">
             <a 
               href="#/stories"
               style="display: inline-block; padding: 10px 20px; border: 1px solid #007bff; border-radius: 6px; color: #007bff; text-decoration: none; font-weight: 500;"
-              aria-label="Back to stories list"
+              aria-label="Kembali ke daftar cerita"
             >
-              ← Back to Stories
+              ← Kembali ke Daftar Cerita
             </a>
           </div>
         </div>
@@ -149,15 +167,22 @@ export default class AddStoriesPage {
     `;
   }
 
+  /**
+   * Menangani interaksi setelah halaman dirender
+   * Mengatur event listener dan inisialisasi komponen
+   */
   async afterRender() {
+    // Inisialisasi elemen form
     const addStoryForm = document.getElementById('addStoryForm');
     const includeLocation = document.getElementById('includeLocation');
     const locationFields = document.getElementById('locationFields');
     
+    // Inisialisasi elemen foto
     const photoFile = document.getElementById('photoFile');
     const previewContainer = document.getElementById('previewContainer');
     const imagePreview = document.getElementById('imagePreview');
     
+    // Inisialisasi elemen kamera
     const openCameraBtn = document.getElementById('openCameraBtn');
     const cameraModal = document.getElementById('cameraModal');
     const cameraStream = document.getElementById('cameraStream');
@@ -165,19 +190,21 @@ export default class AddStoriesPage {
     const closeCameraBtn = document.getElementById('closeCameraBtn');
     const mapContainer = document.getElementById('mapContainer');
     
+    // Variabel untuk menyimpan data
     let capturedBlob = null;
     let mediaStream = null;
     let map = null;
     let marker = null;
 
+    // Event listener untuk checkbox lokasi
     includeLocation.addEventListener('change', () => {
       if (includeLocation.checked) {
         locationFields.style.display = 'block';
         document.getElementById('getCurrentLocation').style.display = 'block';
-        // Add small delay to ensure container is rendered
+        // Menambahkan delay kecil untuk memastikan container sudah dirender
         setTimeout(() => {
           if (!map) {
-            map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default to Jakarta
+            map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default ke Jakarta
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -206,10 +233,10 @@ export default class AddStoriesPage {
       }
     });
 
-    // Add current location button handler
+    // Event listener untuk tombol lokasi saat ini
     document.getElementById('getCurrentLocation').addEventListener('click', () => {
       if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser');
+        alert('Geolokasi tidak didukung oleh browser Anda');
         return;
       }
 
@@ -217,11 +244,11 @@ export default class AddStoriesPage {
         (position) => {
           const { latitude, longitude } = position.coords;
           
-          // Update input fields
+          // Memperbarui input fields
           document.getElementById('latitude').value = latitude;
           document.getElementById('longitude').value = longitude;
           
-          // Update map
+          // Memperbarui peta
           if (map) {
             map.setView([latitude, longitude], 15);
             
@@ -233,20 +260,20 @@ export default class AddStoriesPage {
           }
         },
         (error) => {
-          alert('Unable to retrieve your location. Please make sure location services are enabled.');
+          alert('Tidak dapat mengambil lokasi Anda. Pastikan layanan lokasi diaktifkan.');
           console.error('Error getting location:', error);
         }
       );
     });
 
-    // Preview image from file
+    // Event listener untuk preview foto dari file
     photoFile.addEventListener('change', () => {
       capturedBlob = null;
       const file = photoFile.files[0];
       if (!file) return;
     
       if (file.size > 1024 * 1024) {
-        alert('File must be less than 1MB');
+        alert('File harus kurang dari 1MB');
         photoFile.value = '';
         previewContainer.style.display = 'none';
         return;
@@ -260,7 +287,7 @@ export default class AddStoriesPage {
       reader.readAsDataURL(file);
     });
 
-    // Camera modal logic
+    // Event listener untuk modal kamera
     captureBtn.addEventListener('click', (e) => {
       e.preventDefault();
       const canvas = document.createElement('canvas');
@@ -271,7 +298,7 @@ export default class AddStoriesPage {
     
       canvas.toBlob(blob => {
         if (blob.size > 1024 * 1024) {
-          alert('Captured image must be < 1MB');
+          alert('Foto yang diambil harus < 1MB');
           return;
         }
       
@@ -280,7 +307,7 @@ export default class AddStoriesPage {
         imagePreview.src = imageUrl;
         previewContainer.style.display = 'block';
       
-        // Close modal
+        // Menutup modal
         if (mediaStream) {
           mediaStream.getTracks().forEach(track => track.stop());
           mediaStream = null;
@@ -289,12 +316,12 @@ export default class AddStoriesPage {
       }, 'image/jpeg', 0.9);
     });
 
-    // Prevent form submission from camera modal
+    // Mencegah submit form dari modal kamera
     cameraModal.addEventListener('submit', (e) => {
       e.preventDefault();
     });
 
-    // Prevent form submission from camera buttons
+    // Event listener untuk tombol kamera
     openCameraBtn.addEventListener('click', async (e) => {
       e.preventDefault();
       try {
@@ -302,7 +329,7 @@ export default class AddStoriesPage {
         cameraStream.srcObject = mediaStream;
         cameraModal.style.display = 'flex';
       } catch (err) {
-        alert('Cannot access camera');
+        alert('Tidak dapat mengakses kamera');
         console.error(err);
       }
     });
@@ -316,42 +343,42 @@ export default class AddStoriesPage {
       cameraModal.style.display = 'none';
     });
 
-    // Form submission
+    // Event listener untuk submit form
     addStoryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Only proceed if the submit button was clicked
+      // Hanya lanjutkan jika tombol submit diklik
       if (e.submitter && e.submitter.type === 'submit') {
         const user = JSON.parse(localStorage.getItem('user'));
         if (!user || !user.token) {
-          alert('Please login first');
+          alert('Silakan login terlebih dahulu');
           window.location.hash = '#/login';
           return;
         }
 
         try {
-          // Get form elements
+          // Mengambil elemen form
           const description = document.getElementById('description').value.trim();
           const file = photoFile.files[0];
           const includeLocation = document.getElementById('includeLocation').checked;
           const lat = document.getElementById('latitude').value;
           const lon = document.getElementById('longitude').value;
         
-          // Validate description
+          // Validasi deskripsi
           if (!description) {
-            alert('Please enter a story description');
+            alert('Silakan masukkan deskripsi cerita');
             return;
           }
         
-          // Validate photo
+          // Validasi foto
           if (!file && !capturedBlob) {
-            alert('Please select or capture a photo');
+            alert('Silakan pilih atau ambil foto');
             return;
           }
         
-          // Validate location if included
+          // Validasi lokasi jika disertakan
           if (includeLocation && (!lat || !lon)) {
-            alert('Please select a location on the map or use current location');
+            alert('Silakan pilih lokasi di peta atau gunakan lokasi saat ini');
             return;
           }
         
@@ -360,7 +387,7 @@ export default class AddStoriesPage {
         
           if (file) {
             if (file.size > 1024 * 1024) {
-              alert('File must be less than 1MB');
+              alert('File harus kurang dari 1MB');
               return;
             }
             formData.append('photo', file);
@@ -373,29 +400,29 @@ export default class AddStoriesPage {
             formData.append('lon', lon);
           }
         
-          // Disable submit button to prevent double submission
+          // Menonaktifkan tombol submit untuk mencegah pengiriman ganda
           const submitButton = addStoryForm.querySelector('button[type="submit"]');
           submitButton.disabled = true;
-          submitButton.textContent = 'Submitting...';
+          submitButton.textContent = 'Mengirim...';
           
           const responseData = await Api.addStory(formData, user.token);
 
           if (responseData.error === false) {
-            alert('Story added successfully!');
+            alert('Cerita berhasil ditambahkan!');
             window.location.hash = '#/stories';
           } else {
-            alert(responseData.message || 'Failed to add story');
-            // Re-enable submit button on error
+            alert(responseData.message || 'Gagal menambahkan cerita');
+            // Mengaktifkan kembali tombol submit jika terjadi error
             submitButton.disabled = false;
-            submitButton.textContent = 'Submit Story';
+            submitButton.textContent = 'Kirim Cerita';
           }
         } catch (error) {
           console.error('Error adding story:', error);
-          alert('An error occurred while adding the story');
-          // Re-enable submit button on error
+          alert('Terjadi kesalahan saat menambahkan cerita');
+          // Mengaktifkan kembali tombol submit jika terjadi error
           const submitButton = addStoryForm.querySelector('button[type="submit"]');
           submitButton.disabled = false;
-          submitButton.textContent = 'Submit Story';
+          submitButton.textContent = 'Kirim Cerita';
         }
       }
     });

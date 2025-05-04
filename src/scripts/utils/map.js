@@ -1,6 +1,9 @@
 import L from 'leaflet';
 
-// Sample GeoJSON data for dummy markers in Bandung
+/**
+ * Data GeoJSON contoh untuk marker di Bandung
+ * Berisi lokasi-lokasi populer dengan informasi detail
+ */
 const sampleMarkers = {
   type: 'FeatureCollection',
   features: [
@@ -67,16 +70,21 @@ const sampleMarkers = {
   ]
 };
 
+/**
+ * Inisialisasi peta Leaflet
+ * @param {string} containerId - ID elemen HTML yang akan menampung peta
+ * @returns {L.Map} Instance peta Leaflet
+ */
 export const initMap = (containerId) => {
-  // Initialize the map centered on Bandung
+  // Inisialisasi peta dengan pusat di Bandung
   const map = L.map(containerId).setView([-6.9175, 107.6191], 10);
 
-  // Add the tile layer (OpenStreetMap)
+  // Menambahkan layer tile dari OpenStreetMap
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(map);
 
-  // Add markers from GeoJSON
+  // Menambahkan marker dari data GeoJSON
   L.geoJSON(sampleMarkers, {
     pointToLayer: (feature, latlng) => {
       return L.marker(latlng)
