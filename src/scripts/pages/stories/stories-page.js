@@ -122,11 +122,6 @@ export default class StoriesPage {
     // Add scale control
     L.control.scale().addTo(this.map);
 
-    // Add zoom control
-    L.control.zoom({
-      position: 'bottomright'
-    }).addTo(this.map);
-
     // Add current location and reset view buttons
     const currentLocationBtn = document.getElementById('currentLocationBtn');
     const resetMapBtn = document.getElementById('resetMapBtn');
