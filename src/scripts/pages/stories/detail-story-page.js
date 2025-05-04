@@ -1,7 +1,11 @@
 import Api from '../../data/api';
-
+import Auth from '../../utils/auth';
 export default class DetailStoryPage {
   async render() {
+    // Check authentication
+    if (!Auth.checkAuth()) {
+      return '';
+    }
     return `
       <section class="container">
         <div class="row justify-content-center">

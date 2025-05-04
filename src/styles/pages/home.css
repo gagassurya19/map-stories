@@ -1,0 +1,169 @@
+.hero {
+  background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
+  color: white;
+  padding: 6rem 2rem;
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+
+.hero p {
+  font-size: 1.25rem;
+  margin-bottom: 2rem;
+  opacity: 0.9;
+}
+
+.cta-button {
+  background-color: #48bb78;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  background-color: #38a169;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.features {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.feature-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h2 {
+  color: #2d3748;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feature-card p {
+  color: #4a5568;
+  line-height: 1.6;
+}
+
+.map-preview {
+  background-color: #f7fafc;
+  padding: 4rem 2rem;
+  margin-top: 2rem;
+}
+
+.preview-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.preview-content h2 {
+  color: #2d3748;
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.preview-content p {
+  color: #4a5568;
+  margin-bottom: 2rem;
+}
+
+.map-container {
+  height: 500px;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+}
+
+/* Leaflet Popup Styles */
+.marker-popup {
+  padding: 0.5rem;
+}
+
+.marker-popup h3 {
+  color: #2d3748;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.marker-popup p {
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.marker-popup small {
+  color: #718096;
+  font-size: 0.8rem;
+}
+
+/* Leaflet Custom Styles */
+.leaflet-popup-content-wrapper {
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    padding: 4rem 1rem;
+  }
+
+  .hero h1 {
+    font-size: 2.5rem;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+
+  .map-preview {
+    padding: 2rem 1rem;
+  }
+
+  .map-container {
+    height: 300px;
+  }
+} 

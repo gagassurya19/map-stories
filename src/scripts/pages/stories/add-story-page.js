@@ -1,9 +1,14 @@
 import Api from '../../data/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import Auth from '../../utils/auth';
 
 export default class AddStoriesPage {
   async render() {
+    // Check authentication
+    if (!Auth.checkAuth()) {
+      return '';
+    }
     return `
       <section style="max-width: 800px; margin: 40px auto; padding: 20px;">
         <div style="background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 30px;">
@@ -38,6 +43,9 @@ export default class AddStoriesPage {
                 <input type="checkbox" id="includeLocation" style="margin-right: 10px;">
                 Include My Location
               </label>
+              <button type="button" id="getCurrentLocation" style="margin-top: 10px; padding: 8px 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; display: none;">
+                Use Current Location
+              </button>
             </div>
             <div id="locationFields" style="display: none; margin-bottom: 20px;">
               <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -52,7 +60,7 @@ export default class AddStoriesPage {
                     style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
                 </div>
               </div>
-              <div id="mapContainer" style="height: 0; margin-top: 10px; border-radius: 6px; overflow: hidden;"></div>
+              <div id="mapContainer" style="height: 300px; margin-top: 10px; border-radius: 6px; overflow: hidden;"></div>
             </div>
             <button type="submit"
               style="width: 100%; background-color: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer;">
@@ -94,26 +102,70 @@ export default class AddStoriesPage {
     includeLocation.addEventListener('change', () => {
       if (includeLocation.checked) {
         locationFields.style.display = 'block';
-        this.map = L.map(mapContainer).setView([0, 0], 2);
+        document.getElementById('getCurrentLocation').style.display = 'block';
+        // Add small delay to ensure container is rendered
+        setTimeout(() => {
+          if (!this.map) {
+            this.map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default to Jakarta
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        }).addTo(map);
-      
-        map.on('click', (e) => {
-          const { lat, lng } = e.latlng;
-          document.getElementById('lat').value = lat;
-          document.getElementById('lon').value = lng;
-        
-          if (marker) {
-            map.removeLayer(marker);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            }).addTo(this.map);
+          
+            this.map.on('click', (e) => {
+              const { lat, lng } = e.latlng;
+              document.getElementById('lat').value = lat;
+              document.getElementById('lon').value = lng;
+            
+              if (marker) {
+                this.map.removeLayer(marker);
+              }
+            
+              marker = L.marker([lat, lng]).addTo(this.map);
+            });
           }
-        
-          marker = L.marker([lat, lng]).addTo(map);
-        });
+        }, 100);
       } else {
         locationFields.style.display = 'none';
+        document.getElementById('getCurrentLocation').style.display = 'none';
+        if (this.map) {
+          this.map.remove();
+          this.map = null;
+        }
       }
+    });
+
+    // Add current location button handler
+    document.getElementById('getCurrentLocation').addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Update input fields
+          document.getElementById('lat').value = latitude;
+          document.getElementById('lon').value = longitude;
+          
+          // Update map
+          if (this.map) {
+            this.map.setView([latitude, longitude], 15);
+            
+            if (marker) {
+              this.map.removeLayer(marker);
+            }
+            
+            marker = L.marker([latitude, longitude]).addTo(this.map);
+          }
+        },
+        (error) => {
+          alert('Unable to retrieve your location. Please make sure location services are enabled.');
+          console.error('Error getting location:', error);
+        }
+      );
     });
 
     // Preview image from file
@@ -138,26 +190,8 @@ export default class AddStoriesPage {
     });
 
     // Camera modal logic
-    openCameraBtn.addEventListener('click', async () => {
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        cameraStream.srcObject = mediaStream;
-        cameraModal.style.display = 'flex';
-      } catch (err) {
-        alert('Cannot access camera');
-        console.error(err);
-      }
-    });
-  
-    closeCameraBtn.addEventListener('click', () => {
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-      }
-      cameraModal.style.display = 'none';
-    });
-  
-    captureBtn.addEventListener('click', () => {
+    captureBtn.addEventListener('click', (e) => {
+      e.preventDefault(); // Prevent any form submission
       const canvas = document.createElement('canvas');
       canvas.width = cameraStream.videoWidth;
       canvas.height = cameraStream.videoHeight;
@@ -184,55 +218,114 @@ export default class AddStoriesPage {
       }, 'image/jpeg', 0.9);
     });
 
+    // Prevent form submission from camera modal
+    cameraModal.addEventListener('submit', (e) => {
+      e.preventDefault();
+    });
+
+    // Prevent form submission from camera buttons
+    openCameraBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraStream.srcObject = mediaStream;
+        cameraModal.style.display = 'flex';
+      } catch (err) {
+        alert('Cannot access camera');
+        console.error(err);
+      }
+    });
+
+    closeCameraBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      cameraModal.style.display = 'none';
+    });
+
+    // Ensure form only submits through submit button
     addStoryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-    
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user.token) {
-        alert('Please login first');
-        window.location.hash = '#/login';
-        return;
-      }
-    
-      const formData = new FormData();
-      const description = document.getElementById('description').value;
-      const file = photoFile.files[0];
-    
-      if (!file && !capturedBlob) {
-        alert('Please select or capture a photo');
-        return;
-      }
-    
-      if (file) {
-        if (file.size > 1024 * 1024) {
-          alert('File must be less than 1MB');
+      
+      // Only proceed if the submit button was clicked
+      if (e.submitter && e.submitter.type === 'submit') {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.token) {
+          alert('Please login first');
+          window.location.hash = '#/login';
           return;
         }
-        formData.append('photo', file);
-      } else if (capturedBlob) {
-        formData.append('photo', capturedBlob, 'captured.jpg');
-      }
-    
-      formData.append('description', description);
-    
-      if (includeLocation.checked) {
+
+        // Get form elements
+        const description = document.getElementById('description').value.trim();
+        const file = photoFile.files[0];
+        const includeLocation = document.getElementById('includeLocation').checked;
         const lat = document.getElementById('lat').value;
         const lon = document.getElementById('lon').value;
-        if (lat) formData.append('lat', lat);
-        if (lon) formData.append('lon', lon);
-      }
-    
-      try {
-        const responseData = await Api.addStory(formData, user.token);
-        if (!responseData.error) {
-          alert('Story added successfully!');
-          window.location.hash = '#/stories';
-        } else {
-          alert(responseData.message || 'Failed to add story');
+      
+        // Validate description
+        if (!description) {
+          alert('Please enter a story description');
+          return;
         }
-      } catch (err) {
-        console.error(err);
-        alert('Error uploading story');
+      
+        // Validate photo
+        if (!file && !capturedBlob) {
+          alert('Please select or capture a photo');
+          return;
+        }
+      
+        // Validate location if included
+        if (includeLocation && (!lat || !lon)) {
+          alert('Please select a location on the map or use current location');
+          return;
+        }
+      
+        const formData = new FormData();
+        formData.append('description', description);
+      
+        if (file) {
+          if (file.size > 1024 * 1024) {
+            alert('File must be less than 1MB');
+            return;
+          }
+          formData.append('photo', file);
+        } else if (capturedBlob) {
+          formData.append('photo', capturedBlob, 'captured.jpg');
+        }
+      
+        if (includeLocation) {
+          formData.append('lat', lat);
+          formData.append('lon', lon);
+        }
+      
+        try {
+          // Disable submit button to prevent double submission
+          const submitButton = addStoryForm.querySelector('button[type="submit"]');
+          submitButton.disabled = true;
+          submitButton.textContent = 'Submitting...';
+          
+          const responseData = await Api.addStory(formData, user.token);
+          
+          if (!responseData.error) {
+            alert('Story added successfully!');
+            window.location.hash = '#/stories';
+          } else {
+            alert(responseData.message || 'Failed to add story');
+            // Re-enable submit button on error
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Story';
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Error uploading story. Please try again.');
+          // Re-enable submit button on error
+          const submitButton = addStoryForm.querySelector('button[type="submit"]');
+          submitButton.disabled = false;
+          submitButton.textContent = 'Submit Story';
+        }
       }
     });
   }
