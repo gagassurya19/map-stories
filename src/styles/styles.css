@@ -15,6 +15,69 @@ body {
   max-width: 1300px;
 }
 
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #2c5282;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* View Transitions */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.view-transition {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.view-transition-content {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Focus styles for better accessibility */
+:focus {
+  outline: 2px solid #2c5282;
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid #2c5282;
+  outline-offset: 2px;
+}
+
+/* Visually hidden class for screen readers */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 header {
   background: linear-gradient(135deg, #2c5282 0%, #1a365d 100%);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -111,9 +174,38 @@ header {
 /* MAIN */
 .main-content {
   /* padding-block: 20px; */
+  min-height: calc(100vh - 90px);
 }
 
-/* Write your styles more here */
+/* Loading states */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Error states */
+.error-message {
+  color: #dc2626;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Success states */
+.success-message {
+  color: #059669;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
 
 @media screen and (width > 1000px) {
   .navigation-drawer {

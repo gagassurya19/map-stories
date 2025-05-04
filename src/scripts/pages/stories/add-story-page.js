@@ -9,67 +9,138 @@ export default class AddStoriesPage {
     if (!Auth.checkAuth()) {
       return '';
     }
+
     return `
-      <section style="max-width: 800px; margin: 40px auto; padding: 20px;">
+      <section style="max-width: 800px; margin: 40px auto; padding: 20px;" role="main" aria-label="Add New Story">
         <div style="background: #fff; border-radius: 10px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); padding: 30px;">
           <h2 style="text-align: center; margin-bottom: 30px; font-size: 28px; color: #333;">Add a New Story</h2>
-          <form id="addStoryForm">
+          <form id="addStoryForm" aria-label="Story submission form">
             <div style="margin-bottom: 20px;">
               <label for="description" style="display: block; margin-bottom: 8px; font-weight: 600;">Story Description</label>
-              <textarea id="description" rows="4" required
-                style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;"></textarea>
+              <textarea 
+                id="description" 
+                name="description"
+                rows="4" 
+                required
+                style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px;"
+                aria-required="true"
+              ></textarea>
             </div>
+
             <div class="mb-3">
               <label class="form-label">Upload Photo</label>
-              <input type="file" id="photoFile" accept="image/*" style="width: 100%; margin-bottom: 10px;" />
+              <input 
+                type="file" 
+                id="photoFile" 
+                name="photo"
+                accept="image/*" 
+                style="width: 100%; margin-bottom: 10px;"
+                aria-required="true"
+              />
 
-              <button type="button" id="openCameraBtn" style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Open Camera</button>
+              <button 
+                type="button" 
+                id="openCameraBtn" 
+                style="padding: 8px 12px; background-color: #007bff; color: white; border: none; border-radius: 5px;"
+                aria-label="Open camera to take photo"
+              >
+                Open Camera
+              </button>
 
               <div id="previewContainer" style="margin-top: 10px; display: none;">
-                <img id="imagePreview" src="" alt="Image preview" style="max-width: 100%; border-radius: 10px;" />
+                <img id="imagePreview" src="" alt="Photo preview" style="max-width: 100%; border-radius: 10px;" />
               </div>
             </div>
 
             <!-- Camera Modal -->
-            <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
+            <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;" role="dialog" aria-label="Camera capture modal">
               <div style="background: white; padding: 20px; border-radius: 10px; position: relative;">
-                <video id="cameraStream" autoplay playsinline style="width: 100%; border-radius: 10px;"></video>
-                <button id="captureBtn" style="margin-top: 10px; padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px;">Capture</button>
-                <button id="closeCameraBtn" style="position: absolute; top: 10px; right: 10px; background-color: transparent; border: none; font-size: 20px; color: #333;">&times;</button>
+                <video 
+                  id="cameraStream" 
+                  autoplay 
+                  playsinline 
+                  style="width: 100%; border-radius: 10px;"
+                  aria-label="Camera preview"
+                ></video>
+                <button 
+                  id="captureBtn" 
+                  style="margin-top: 10px; padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px;"
+                  aria-label="Capture photo"
+                >
+                  Capture
+                </button>
+                <button 
+                  id="closeCameraBtn" 
+                  style="position: absolute; top: 10px; right: 10px; background-color: transparent; border: none; font-size: 20px; color: #333;"
+                  aria-label="Close camera"
+                >
+                  &times;
+                </button>
               </div>
             </div>
+
             <div style="margin-bottom: 20px;">
               <label style="display: flex; align-items: center;">
-                <input type="checkbox" id="includeLocation" style="margin-right: 10px;">
+                <input 
+                  type="checkbox" 
+                  id="includeLocation" 
+                  name="includeLocation"
+                  style="margin-right: 10px;"
+                >
                 Include My Location
               </label>
-              <button type="button" id="getCurrentLocation" style="margin-top: 10px; padding: 8px 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; display: none;">
+              <button 
+                type="button" 
+                id="getCurrentLocation" 
+                style="margin-top: 10px; padding: 8px 12px; background-color: #28a745; color: white; border: none; border-radius: 5px; display: none;"
+                aria-label="Use current location"
+              >
                 Use Current Location
               </button>
             </div>
+
             <div id="locationFields" style="display: none; margin-bottom: 20px;">
               <div style="display: flex; gap: 20px; flex-wrap: wrap;">
                 <div style="flex: 1;">
-                  <label for="lat" style="display: block; margin-bottom: 8px; font-weight: 600;">Latitude</label>
-                  <input type="number" id="lat" step="any"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                  <label for="latitude" style="display: block; margin-bottom: 8px; font-weight: 600;">Latitude</label>
+                  <input 
+                    type="number" 
+                    id="latitude" 
+                    name="lat"
+                    step="any"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;"
+                    readonly
+                  >
                 </div>
                 <div style="flex: 1;">
-                  <label for="lon" style="display: block; margin-bottom: 8px; font-weight: 600;">Longitude</label>
-                  <input type="number" id="lon" step="any"
-                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                  <label for="longitude" style="display: block; margin-bottom: 8px; font-weight: 600;">Longitude</label>
+                  <input 
+                    type="number" 
+                    id="longitude" 
+                    name="lon"
+                    step="any"
+                    style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px;"
+                    readonly
+                  >
                 </div>
               </div>
-              <div id="mapContainer" style="height: 300px; margin-top: 10px; border-radius: 6px; overflow: hidden;"></div>
+              <div id="mapContainer" style="height: 300px; margin-top: 10px; border-radius: 6px; overflow: hidden;" role="application" aria-label="Map for selecting story location"></div>
             </div>
-            <button type="submit"
-              style="width: 100%; background-color: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer;">
+
+            <button 
+              type="submit"
+              style="width: 100%; background-color: #007bff; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer;"
+              aria-label="Submit story"
+            >
               Submit Story
             </button>
           </form>
           <div style="text-align: center; margin-top: 20px;">
-            <a href="#/stories"
-              style="display: inline-block; padding: 10px 20px; border: 1px solid #007bff; border-radius: 6px; color: #007bff; text-decoration: none; font-weight: 500;">
+            <a 
+              href="#/stories"
+              style="display: inline-block; padding: 10px 20px; border: 1px solid #007bff; border-radius: 6px; color: #007bff; text-decoration: none; font-weight: 500;"
+              aria-label="Back to stories list"
+            >
               ← Back to Stories
             </a>
           </div>
@@ -105,32 +176,32 @@ export default class AddStoriesPage {
         document.getElementById('getCurrentLocation').style.display = 'block';
         // Add small delay to ensure container is rendered
         setTimeout(() => {
-          if (!this.map) {
-            this.map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default to Jakarta
+          if (!map) {
+            map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default to Jakarta
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
               attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            }).addTo(this.map);
+            }).addTo(map);
           
-            this.map.on('click', (e) => {
+            map.on('click', (e) => {
               const { lat, lng } = e.latlng;
-              document.getElementById('lat').value = lat;
-              document.getElementById('lon').value = lng;
+              document.getElementById('latitude').value = lat;
+              document.getElementById('longitude').value = lng;
             
               if (marker) {
-                this.map.removeLayer(marker);
+                map.removeLayer(marker);
               }
             
-              marker = L.marker([lat, lng]).addTo(this.map);
+              marker = L.marker([lat, lng]).addTo(map);
             });
           }
         }, 100);
       } else {
         locationFields.style.display = 'none';
         document.getElementById('getCurrentLocation').style.display = 'none';
-        if (this.map) {
-          this.map.remove();
-          this.map = null;
+        if (map) {
+          map.remove();
+          map = null;
         }
       }
     });
@@ -147,18 +218,18 @@ export default class AddStoriesPage {
           const { latitude, longitude } = position.coords;
           
           // Update input fields
-          document.getElementById('lat').value = latitude;
-          document.getElementById('lon').value = longitude;
+          document.getElementById('latitude').value = latitude;
+          document.getElementById('longitude').value = longitude;
           
           // Update map
-          if (this.map) {
-            this.map.setView([latitude, longitude], 15);
+          if (map) {
+            map.setView([latitude, longitude], 15);
             
             if (marker) {
-              this.map.removeLayer(marker);
+              map.removeLayer(marker);
             }
             
-            marker = L.marker([latitude, longitude]).addTo(this.map);
+            marker = L.marker([latitude, longitude]).addTo(map);
           }
         },
         (error) => {
@@ -191,7 +262,7 @@ export default class AddStoriesPage {
 
     // Camera modal logic
     captureBtn.addEventListener('click', (e) => {
-      e.preventDefault(); // Prevent any form submission
+      e.preventDefault();
       const canvas = document.createElement('canvas');
       canvas.width = cameraStream.videoWidth;
       canvas.height = cameraStream.videoHeight;
@@ -245,7 +316,7 @@ export default class AddStoriesPage {
       cameraModal.style.display = 'none';
     });
 
-    // Ensure form only submits through submit button
+    // Form submission
     addStoryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
@@ -258,58 +329,58 @@ export default class AddStoriesPage {
           return;
         }
 
-        // Get form elements
-        const description = document.getElementById('description').value.trim();
-        const file = photoFile.files[0];
-        const includeLocation = document.getElementById('includeLocation').checked;
-        const lat = document.getElementById('lat').value;
-        const lon = document.getElementById('lon').value;
-      
-        // Validate description
-        if (!description) {
-          alert('Please enter a story description');
-          return;
-        }
-      
-        // Validate photo
-        if (!file && !capturedBlob) {
-          alert('Please select or capture a photo');
-          return;
-        }
-      
-        // Validate location if included
-        if (includeLocation && (!lat || !lon)) {
-          alert('Please select a location on the map or use current location');
-          return;
-        }
-      
-        const formData = new FormData();
-        formData.append('description', description);
-      
-        if (file) {
-          if (file.size > 1024 * 1024) {
-            alert('File must be less than 1MB');
+        try {
+          // Get form elements
+          const description = document.getElementById('description').value.trim();
+          const file = photoFile.files[0];
+          const includeLocation = document.getElementById('includeLocation').checked;
+          const lat = document.getElementById('latitude').value;
+          const lon = document.getElementById('longitude').value;
+        
+          // Validate description
+          if (!description) {
+            alert('Please enter a story description');
             return;
           }
-          formData.append('photo', file);
-        } else if (capturedBlob) {
-          formData.append('photo', capturedBlob, 'captured.jpg');
-        }
-      
-        if (includeLocation) {
-          formData.append('lat', lat);
-          formData.append('lon', lon);
-        }
-      
-        try {
+        
+          // Validate photo
+          if (!file && !capturedBlob) {
+            alert('Please select or capture a photo');
+            return;
+          }
+        
+          // Validate location if included
+          if (includeLocation && (!lat || !lon)) {
+            alert('Please select a location on the map or use current location');
+            return;
+          }
+        
+          const formData = new FormData();
+          formData.append('description', description);
+        
+          if (file) {
+            if (file.size > 1024 * 1024) {
+              alert('File must be less than 1MB');
+              return;
+            }
+            formData.append('photo', file);
+          } else if (capturedBlob) {
+            formData.append('photo', capturedBlob, 'captured.jpg');
+          }
+        
+          if (includeLocation) {
+            formData.append('lat', lat);
+            formData.append('lon', lon);
+          }
+        
           // Disable submit button to prevent double submission
           const submitButton = addStoryForm.querySelector('button[type="submit"]');
           submitButton.disabled = true;
           submitButton.textContent = 'Submitting...';
           
           const responseData = await Api.addStory(formData, user.token);
-          
-          if (!responseData.error) {
+
+          if (responseData.error === false) {
             alert('Story added successfully!');
             window.location.hash = '#/stories';
           } else {
@@ -318,9 +389,9 @@ export default class AddStoriesPage {
             submitButton.disabled = false;
             submitButton.textContent = 'Submit Story';
           }
-        } catch (err) {
-          console.error(err);
-          alert('Error uploading story. Please try again.');
+        } catch (error) {
+          console.error('Error adding story:', error);
+          alert('An error occurred while adding the story');
           // Re-enable submit button on error
           const submitButton = addStoryForm.querySelector('button[type="submit"]');
           submitButton.disabled = false;

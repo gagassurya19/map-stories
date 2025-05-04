@@ -4,7 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="shortcut icon" href="/favicon.png" />
-    <title>App</title>
+    <title>MapNotes - Your Location-Based Story App</title>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -16,31 +16,69 @@
       .hidden {
         display: none !important;
       }
+
+      /* Skip to content link */
+      .skip-to-content {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: #2c5282;
+        color: white;
+        padding: 8px;
+        z-index: 100;
+        transition: top 0.3s;
+      }
+
+      .skip-to-content:focus {
+        top: 0;
+      }
+
+      /* View Transitions */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .view-transition {
+        animation: fadeIn 0.3s ease-out;
+      }
+
+      .view-transition-content {
+        animation: slideIn 0.3s ease-out;
+      }
     </style>
 
     <script type="module" src="/scripts/index.js"></script>
   </head>
   <body>
+    <!-- Skip to content link -->
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+
     <header>
       <div class="main-header container">
-        <a class="brand-name" href="#/">MapNotes</a>
+        <a class="brand-name" href="#/" aria-label="MapNotes Home">MapNotes</a>
 
-        <nav id="navigation-drawer" class="navigation-drawer">
+        <nav id="navigation-drawer" class="navigation-drawer" aria-label="Main navigation">
           <ul id="nav-list" class="nav-list">
-            <li><a href="#/">Home</a></li>
+            <li><a href="#/" aria-current="page">Home</a></li>
             <li class="auth-required"><a href="#/stories">Stories</a></li>
             <li class="auth-required"><a href="#/add-story">Add Stories</a></li>
             <li><a href="#/add-guest-story">Add as Guest</a></li>
-            <li class="auth-only hidden"><a href="#" id="logoutBtn">Logout</a></li>
+            <li class="auth-only hidden"><a href="#" id="logoutBtn" role="button">Logout</a></li>
             <li class="guest-only hidden"><a href="#/login">Login</a></li>
             <li class="guest-only hidden"><a href="#/register">Register</a></li>
           </ul>
         </nav>
 
-        <button id="drawer-button" class="drawer-button">☰</button>
+        <button id="drawer-button" class="drawer-button" aria-label="Toggle navigation menu" aria-expanded="false">☰</button>
       </div>
     </header>
 
-    <main id="main-content" class="main-content"></main>
+    <main id="main-content" class="main-content" tabindex="-1"></main>
   </body>
 </html>
