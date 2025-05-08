@@ -1,10 +1,22 @@
 import Api from '../../../data/api';
+import LoginPresenter from './login-presenter';
+import '../../../../styles/pages/auth.css';
 
 /**
  * Kelas LoginPage
  * Menangani tampilan dan interaksi halaman login
  */
 export default class LoginPage {
+  #presenter;
+
+  constructor() {
+    this.#presenter = new LoginPresenter({ model: Api, view: this });
+  }
+
+  setPresenter(presenter) {
+    this.#presenter = presenter;
+  }
+
   /**
    * Merender konten halaman login
    * @returns {string} HTML string untuk halaman login
@@ -20,7 +32,7 @@ export default class LoginPage {
               <h1 class="text-2xl font-bold text-gray-900 mb-6">Login</h1>
             </div>
             <!-- Form Login -->
-            <form id="loginForm" class="space-y-6" aria-label="Login form">
+            <div id="loginForm" class="space-y-6">
               <!-- Input Email -->
               <div>
                 <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
@@ -49,13 +61,14 @@ export default class LoginPage {
               </div>
               <!-- Tombol Submit -->
               <button 
-                type="submit" 
+                type="button" 
+                id="loginButton"
                 class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 aria-label="Login to your account"
               >
                 Login
               </button>
-            </form>
+            </div>
             <!-- Link Registrasi -->
             <div class="mt-4 text-center">
               <p class="text-sm text-gray-600">
@@ -76,36 +89,64 @@ export default class LoginPage {
    * Mengatur event listener untuk form login
    */
   async afterRender() {
+    console.log('afterRender called');
+    if (this.#presenter) {
+      await this.#presenter.init();
+    }
+  }
+
+  // View methods that can be called by the presenter
+  setupEventListeners() {
+    console.log('setupEventListeners called');
     const loginForm = document.getElementById('loginForm');
+    const loginButton = document.getElementById('loginButton');
     
-    loginForm.addEventListener('submit', async (e) => {
+    if (!loginForm) {
+      console.error('Login form not found!');
+      return;
+    }
+
+    // Add click event to button
+    loginButton.addEventListener('click', async (e) => {
+      console.log('Login button clicked');
       e.preventDefault();
       
-      // Mengambil nilai input
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      try {
-        // Mencoba login dengan API
-        const responseData = await Api.login(email, password);
+      console.log('Attempting login with:', { email });
 
-        if (responseData.error === false) {
-          // Menyimpan data user ke localStorage
-          localStorage.setItem('user', JSON.stringify({
-            id: responseData.loginResult.userId,
-            name: responseData.loginResult.name,
-            token: responseData.loginResult.token
-          }));
-          
-          alert('Login successful!');
-          window.location.hash = '#/stories';
-        } else {
-          alert(responseData.message || 'Login failed. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error during login:', error);
-        alert('An error occurred during login. Please try again.');
+      if (this.#presenter) {
+        await this.#presenter.handleLogin(email, password);
+      } else {
+        console.error('Presenter not set!');
       }
     });
+
+    // Also keep form submit handler as backup
+    loginForm.addEventListener('submit', async (e) => {
+      console.log('Form submitted');
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      if (this.#presenter) {
+        await this.#presenter.handleLogin(email, password);
+      }
+    });
+  }
+
+  showSuccess(message) {
+    alert(message);
+  }
+
+  showError(message) {
+    alert(message);
+  }
+
+  redirectToStories() {
+    window.location.hash = '#/stories';
+    window.location.reload();
   }
 }

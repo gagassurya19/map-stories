@@ -14,7 +14,7 @@ import AddGuestStoryPage from '../pages/stories/add-guest-story-page';
 const routes = {
   '/': new HomePage(),                    // Halaman Utama
   '/login': new LoginPage(),              // Halaman Login
-  '/register': new RegisterPage(),        // Halaman Registrasi
+  '/register': new RegisterPage(),        // Halaman Register
   '/stories': new StoriesPage(),          // Halaman Daftar Cerita
   '/stories/:id': new DetailStoryPage(),  // Halaman Detail Cerita
   '/add-story': new AddStoriesPage(),     // Halaman Tambah Cerita (User)

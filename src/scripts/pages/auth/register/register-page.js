@@ -1,10 +1,22 @@
+import '../../../../styles/pages/auth.css';
 import Api from '../../../data/api';
+import RegisterPresenter from './register-presenter';
 
 /**
  * Kelas RegisterPage
  * Menangani tampilan dan interaksi halaman registrasi
  */
 export default class RegisterPage {
+  #presenter;
+
+  constructor() {
+    this.#presenter = new RegisterPresenter({ model: Api, view: this });
+  }
+
+  setPresenter(presenter) {
+    this.#presenter = presenter;
+  }
+
   /**
    * Merender konten halaman registrasi
    * @returns {string} HTML string untuk halaman registrasi
@@ -20,7 +32,7 @@ export default class RegisterPage {
               <h1 class="text-2xl font-bold text-gray-900 mb-6">Register</h1>
             </div>
             <!-- Form Registrasi -->
-            <form id="registerForm" class="space-y-6" aria-label="Registration form">
+            <form id="registerForm" class="space-y-6" aria-label="Registration form" onsubmit="return false;">
               <!-- Input Nama -->
               <div>
                 <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
@@ -91,30 +103,38 @@ export default class RegisterPage {
    * Mengatur event listener untuk form registrasi
    */
   async afterRender() {
+    if (this.#presenter) {
+      await this.#presenter.init();
+    }
+  }
+
+  // View methods that can be called by the presenter
+  setupEventListeners() {
     const registerForm = document.getElementById('registerForm');
     
     registerForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+      e.preventDefault(); // Prevent form submission
       
-      // Mengambil nilai input
       const name = document.getElementById('name').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      try {
-        // Mencoba registrasi dengan API
-        const responseData = await Api.register(name, email, password);
-
-        if (responseData.error === false) {
-          alert('Registration successful! Please login.');
-          window.location.hash = '#/login';
-        } else {
-          alert(responseData.message || 'Registration failed. Please try again.');
-        }
-      } catch (error) {
-        console.error('Error during registration:', error);
-        alert('An error occurred during registration. Please try again.');
+      if (this.#presenter) {
+        await this.#presenter.handleRegister(name, email, password);
       }
     });
+  }
+
+  showSuccess(message) {
+    alert(message);
+  }
+
+  showError(message) {
+    alert(message);
+  }
+
+  redirectToLogin() {
+    window.location.hash = '#/login';
+    window.location.reload();
   }
 }

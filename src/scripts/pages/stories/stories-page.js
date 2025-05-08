@@ -8,6 +8,14 @@ import Auth from '../../utils/auth';
  * Menangani tampilan dan interaksi halaman daftar cerita
  */
 export default class StoriesPage {
+  constructor() {
+    this.page = 1;
+    this.size = 10;
+    this.stories = [];
+    this.markers = [];
+    this.map = null;
+  }
+
   /**
    * Merender konten halaman cerita
    * @returns {string} HTML string untuk halaman cerita
@@ -39,7 +47,7 @@ export default class StoriesPage {
               </div>
             </div>
             <!-- Daftar Cerita -->
-            <div id="storiesList" class="space-y-2 pb-12" role="list">
+            <div id="storiesList" class="space-y-2 pb-12" role="list" tabindex="-1">
               <!-- Indikator Loading -->
               <div class="text-center py-3" role="status" aria-live="polite">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
@@ -91,22 +99,38 @@ export default class StoriesPage {
 
   /**
    * Menangani interaksi setelah halaman dirender
-   * Mengatur inisialisasi peta dan loading cerita
    */
   async afterRender() {
-    // Inisialisasi variabel
-    this.page = 1;
-    this.size = 10;
-    this.stories = [];
-    this.markers = [];
-    this.map = null;
+    // Setup skip-to-content handler
+    this.setupSkipToContent();
     
-    // Inisialisasi peta
+    // Initialize map first
     this.initMap();
     
-    // Load cerita dan setup tombol load more
+    // Load stories
     await this.loadStories();
-    this.setupLoadMore();
+    
+    // Setup event listeners
+    this.setupEventListeners();
+  }
+
+  /**
+   * Mengatur handler untuk skip-to-content
+   */
+  setupSkipToContent() {
+    const skipLink = document.querySelector('.skip-to-content');
+    if (skipLink) {
+      skipLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const storyCards = document.getElementsByClassName('story-card');
+        if (storyCards && storyCards.length > 0) {
+          const firstCard = storyCards[0];
+          firstCard.setAttribute('tabindex', '-1');
+          firstCard.focus();
+          firstCard.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
   }
 
   /**
@@ -253,8 +277,13 @@ export default class StoriesPage {
       return;
     }
     
-    storiesList.innerHTML = this.stories.map(story => `
-      <div class="story-card bg-white rounded shadow-sm hover:shadow transition-shadow" role="article">
+    storiesList.innerHTML = this.stories.map((story, index) => `
+      <div 
+        class="story-card bg-white rounded shadow-sm hover:shadow transition-shadow" 
+        role="article"
+        tabindex="0"
+        aria-label="Story by ${story.name}"
+      >
         <div class="relative">
           <img src="${story.photoUrl}" class="w-full h-32 object-cover rounded-t" alt="Story image by ${story.name}">
           ${story.lat && story.lon ? `
@@ -298,6 +327,19 @@ export default class StoriesPage {
         const lat = parseFloat(button.dataset.lat);
         const lon = parseFloat(button.dataset.lon);
         this.map.setView([lat, lon], 15);
+      });
+    });
+
+    // Add keyboard navigation for story cards
+    document.querySelectorAll('.story-card').forEach(card => {
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const detailsLink = card.querySelector('a[href^="#/stories/"]');
+          if (detailsLink) {
+            detailsLink.click();
+          }
+        }
       });
     });
   }
@@ -365,6 +407,32 @@ export default class StoriesPage {
       }
     } else {
       alert('Geolocation is not supported by your browser');
+    }
+  }
+
+  /**
+   * Mengatur event listeners
+   */
+  setupEventListeners() {
+    // Setup load more button
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) {
+      loadMoreBtn.addEventListener('click', async () => {
+        this.page += 1;
+        await this.loadStories();
+      });
+    }
+
+    // Setup map control buttons
+    const currentLocationBtn = document.getElementById('currentLocationBtn');
+    const resetMapBtn = document.getElementById('resetMapBtn');
+
+    if (currentLocationBtn) {
+      currentLocationBtn.addEventListener('click', () => this.zoomToCurrentLocation());
+    }
+
+    if (resetMapBtn) {
+      resetMapBtn.addEventListener('click', () => this.resetMapView());
     }
   }
 }

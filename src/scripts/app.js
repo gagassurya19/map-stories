@@ -1,4 +1,5 @@
 import Auth from './utils/auth';
+import 'leaflet';
 
 /**
  * Kelas utama aplikasi yang menangani inisialisasi dan navigasi

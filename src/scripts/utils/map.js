@@ -76,27 +76,51 @@ const sampleMarkers = {
  * @returns {L.Map} Instance peta Leaflet
  */
 export const initMap = (containerId) => {
-  // Inisialisasi peta dengan pusat di Bandung
-  const map = L.map(containerId).setView([-6.9175, 107.6191], 10);
-
-  // Menambahkan layer tile dari OpenStreetMap
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-  }).addTo(map);
-
-  // Menambahkan marker dari data GeoJSON
-  L.geoJSON(sampleMarkers, {
-    pointToLayer: (feature, latlng) => {
-      return L.marker(latlng)
-        .bindPopup(`
-          <div class="marker-popup">
-            <h3>${feature.properties.title}</h3>
-            <p>${feature.properties.description}</p>
-            <small>${feature.properties.date}</small>
-          </div>
-        `);
+  try {
+    console.log('Initializing map in container:', containerId);
+    const container = document.getElementById(containerId);
+    
+    if (!container) {
+      console.error('Map container not found:', containerId);
+      return null;
     }
-  }).addTo(map);
 
-  return map;
+    // Inisialisasi peta dengan pusat di Bandung
+    const map = L.map(containerId, {
+      center: [-6.9175, 107.6191],
+      zoom: 10,
+      zoomControl: true
+    });
+
+    // Menambahkan layer tile dari OpenStreetMap
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Menambahkan marker dari data GeoJSON
+    L.geoJSON(sampleMarkers, {
+      pointToLayer: (feature, latlng) => {
+        return L.marker(latlng)
+          .bindPopup(`
+            <div class="marker-popup">
+              <h3>${feature.properties.title}</h3>
+              <p>${feature.properties.description}</p>
+              <small>${feature.properties.date}</small>
+            </div>
+          `);
+      }
+    }).addTo(map);
+
+    // Trigger resize event to ensure map renders correctly
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
+    console.log('Map initialized successfully');
+    return map;
+  } catch (error) {
+    console.error('Error initializing map:', error);
+    return null;
+  }
 }; 

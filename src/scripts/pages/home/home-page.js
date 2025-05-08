@@ -6,6 +6,18 @@ import { initMap } from '../../utils/map.js';
  * Menangani tampilan dan interaksi halaman utama aplikasi
  */
 export default class HomePage {
+  #presenter;
+  #map;
+
+  constructor() {
+    this.#presenter = null;
+    this.#map = null;
+  }
+
+  setPresenter(presenter) {
+    this.#presenter = presenter;
+  }
+
   /**
    * Merender konten halaman utama
    * @returns {string} HTML string untuk halaman utama
@@ -17,7 +29,7 @@ export default class HomePage {
         <div class="hero-content">
           <h1>MapNotes</h1>
           <p>Capture your memories and locations in one place</p>
-          <button class="cta-button">Start Taking Notes</button>
+          <button class="cta-button" id="ctaButton">Start Taking Notes</button>
         </div>
       </section>
 
@@ -53,16 +65,48 @@ export default class HomePage {
    * Mengatur event listener dan inisialisasi peta
    */
   async afterRender() {
-    // Menangani klik tombol CTA
-    const ctaButton = document.querySelector('.cta-button');
+    // Setup event listeners first
+    this.setupEventListeners();
+    
+    // Then initialize map
+    await this.initMap();
+    
+    // Finally, initialize presenter if exists
+    if (this.#presenter) {
+      await this.#presenter.init();
+    }
+  }
+
+  // View methods that can be called by the presenter
+  async initMap() {
+    try {
+      const mapContainer = document.getElementById('map-container');
+      if (!mapContainer) {
+        console.error('Map container not found');
+        return null;
+      }
+      
+      // Ensure the container is visible and has dimensions
+      mapContainer.style.display = 'block';
+      mapContainer.style.height = '400px';
+      
+      // Initialize map
+      this.#map = await initMap('map-container');
+      return this.#map;
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      return null;
+    }
+  }
+
+  setupEventListeners() {
+    const ctaButton = document.getElementById('ctaButton');
     if (ctaButton) {
       ctaButton.addEventListener('click', () => {
-        // Navigasi ke halaman cerita
         window.location.href = '#/stories';
       });
+    } else {
+      console.error('CTA button not found');
     }
-
-    // Inisialisasi peta
-    const map = initMap('map-container');
   }
 }
