@@ -257,7 +257,7 @@ export default class StoriesPage {
       }
     } catch (error) {
       console.error('Error loading stories:', error);
-      alert('An error occurred while loading stories');
+      // alert('An error occurred while loading stories');
     }
   }
 

@@ -32,6 +32,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Render halaman awal
   await app.renderPage();
 
+  // Tambahkan animasi fadeIn pada load pertama
+  const mainContent = document.querySelector('#main-content');
+  if (mainContent) {
+    mainContent.style.opacity = 0;
+    mainContent.style.transition = 'opacity 0.4s ease-out';
+    setTimeout(() => {
+      mainContent.style.opacity = 1;
+    }, 10);
+  }
+
   // Menangani perubahan hash URL untuk navigasi
   window.addEventListener('hashchange', async () => {
     await app.renderPage();

@@ -66,35 +66,36 @@ class App {
     const url = getActiveRoute();
     const page = routes[url];
 
-    // Membuat animasi untuk transisi halaman
-    const animation = this.#content.animate([
-      { opacity: 1, transform: 'translateY(0)' },
-      { opacity: 0, transform: 'translateY(20px)' }
-    ], {
-      duration: 200,
-      easing: 'ease-out'
-    });
-
-    // Menunggu animasi fade out selesai
-    await animation.finished;
-
-    // Merender konten halaman
-    this.#content.innerHTML = await page.render();
-    
-    // Membuat animasi untuk konten baru
-    const newContent = this.#content.firstElementChild;
-    if (newContent) {
-      const enterAnimation = newContent.animate([
-        { opacity: 0, transform: 'translateY(20px)' },
-        { opacity: 1, transform: 'translateY(0)' }
+    // Gunakan View Transition API jika tersedia
+    if (document.startViewTransition) {
+      await document.startViewTransition(async () => {
+        this.#content.innerHTML = await page.render();
+        await page.afterRender();
+      }).finished;
+    } else {
+      // Fallback animasi manual jika browser tidak mendukung
+      const animation = this.#content.animate([
+        { opacity: 1, transform: 'translateY(0)' },
+        { opacity: 0, transform: 'translateY(20px)' }
       ], {
-        duration: 300,
+        duration: 200,
         easing: 'ease-out'
       });
-      await enterAnimation.finished;
+      await animation.finished;
+      this.#content.innerHTML = await page.render();
+      const newContent = this.#content.firstElementChild;
+      if (newContent) {
+        const enterAnimation = newContent.animate([
+          { opacity: 0, transform: 'translateY(20px)' },
+          { opacity: 1, transform: 'translateY(0)' }
+        ], {
+          duration: 300,
+          easing: 'ease-out'
+        });
+        await enterAnimation.finished;
+      }
+      await page.afterRender();
     }
-
-    await page.afterRender();
   }
 }
 
