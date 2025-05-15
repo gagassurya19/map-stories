@@ -1,18 +1,28 @@
 import '../../../../styles/pages/auth.css';
-import Api from '../../../data/api';
-import RegisterPresenter from './register-presenter';
+import RegisterModel from './register-model.js';
+import RegisterPresenter from './register-presenter.js';
 
 /**
- * Kelas RegisterPage
- * Menangani tampilan dan interaksi halaman registrasi
+ * View class for the register page
+ * Handles rendering and UI interactions for the registration page
  */
-export default class RegisterPage {
+export default class RegisterView {
   #presenter;
+  #model;
 
   constructor() {
-    this.#presenter = new RegisterPresenter({ model: Api, view: this });
+    // Initialize model and presenter
+    this.#model = new RegisterModel();
+    this.#presenter = new RegisterPresenter({
+      model: this.#model,
+      view: this,
+    });
   }
 
+  /**
+   * Sets the presenter for this view
+   * @param {Object} presenter - The presenter instance
+   */
   setPresenter(presenter) {
     this.#presenter = presenter;
   }
@@ -103,16 +113,21 @@ export default class RegisterPage {
    * Mengatur event listener untuk form registrasi
    */
   async afterRender() {
-    if (this.#presenter) {
-      await this.#presenter.init();
-    }
+    this.setupEventListeners();
   }
 
-  // View methods that can be called by the presenter
+  /**
+   * Sets up all event listeners for the registration form
+   */
   setupEventListeners() {
     const registerForm = document.getElementById('registerForm');
     
-    registerForm.addEventListener('submit', async (e) => {
+    if (!registerForm) {
+      console.error('Registration form not found!');
+      return;
+    }
+
+    registerForm.addEventListener('submit', (e) => {
       e.preventDefault(); // Prevent form submission
       
       const name = document.getElementById('name').value;
@@ -120,21 +135,34 @@ export default class RegisterPage {
       const password = document.getElementById('password').value;
 
       if (this.#presenter) {
-        await this.#presenter.handleRegister(name, email, password);
+        this.#presenter.handleRegister(name, email, password);
+      } else {
+        console.error('Presenter not set!');
       }
     });
   }
 
+  /**
+   * Shows a success message to the user
+   * @param {string} message - Success message to display
+   */
   showSuccess(message) {
     alert(message);
   }
 
+  /**
+   * Shows an error message to the user
+   * @param {string} message - Error message to display
+   */
   showError(message) {
     alert(message);
   }
 
+  /**
+   * Redirects the user to the login page
+   */
   redirectToLogin() {
     window.location.hash = '#/login';
     window.location.reload();
   }
-}
+} 

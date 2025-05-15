@@ -2,16 +2,16 @@ import '../../../styles/pages/home.css';
 import { initMap } from '../../utils/map.js';
 
 /**
- * Kelas HomePage
- * Menangani tampilan dan interaksi halaman utama aplikasi
+ * Class HomeView
+ * Handles rendering and UI interactions for the home page
  */
-export default class HomePage {
-  #presenter;
+export default class HomeView {
   #map;
+  #presenter;
 
   constructor() {
-    this.#presenter = null;
     this.#map = null;
+    this.#presenter = null;
   }
 
   setPresenter(presenter) {
@@ -77,7 +77,7 @@ export default class HomePage {
     }
   }
 
-  // View methods that can be called by the presenter
+  // View methods for handling UI elements
   async initMap() {
     try {
       const mapContainer = document.getElementById('map-container');

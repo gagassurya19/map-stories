@@ -1,34 +1,47 @@
-import Api from '../../../data/api';
-
+/**
+ * Presenter class for the login page
+ * Handles the communication between model and view
+ */
 export default class LoginPresenter {
   #model;
   #view;
 
   constructor({ model, view }) {
-    console.log('LoginPresenter constructor called');
     this.#model = model;
     this.#view = view;
+    
+    // Connect view to presenter
+    this.#view.setPresenter(this);
   }
 
+  /**
+   * Initializes the presenter
+   * Called after the view is rendered
+   */
   async init() {
-    console.log('LoginPresenter init called');
-    this.#view.setupEventListeners();
+    // Any additional initialization can go here
   }
 
+  /**
+   * Handles the login action
+   * @param {string} email - User email
+   * @param {string} password - User password
+   */
   async handleLogin(email, password) {
-    console.log('handleLogin called with:', { email });
+    // Basic validation
+    if (!email || !password) {
+      this.#view.showError('Please enter both email and password');
+      return;
+    }
+    
     try {
-      const responseData = await Api.login(email, password);
-      console.log('Login response:', responseData);
+      const responseData = await this.#model.login(email, password);
 
       if (responseData.error === false) {
-        // Menyimpan data user ke localStorage
-        localStorage.setItem('user', JSON.stringify({
-          id: responseData.loginResult.userId,
-          name: responseData.loginResult.name,
-          token: responseData.loginResult.token
-        }));
+        // Save user data to localStorage using the model
+        this.#model.saveUserData(responseData.loginResult);
         
+        // Update the view
         this.#view.showSuccess('Login successful!');
         this.#view.redirectToStories();
       } else {

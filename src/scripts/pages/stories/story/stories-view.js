@@ -1,19 +1,35 @@
-import Api from '../../data/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import Auth from '../../utils/auth';
+import StoriesModel from './stories-model.js';
+import StoriesPresenter from './stories-presenter.js';
 
 /**
- * Kelas StoriesPage
- * Menangani tampilan dan interaksi halaman daftar cerita
+ * View class for the stories page
+ * Handles rendering and UI interactions for the stories page
  */
-export default class StoriesPage {
+export default class StoriesView {
+  #presenter;
+  #model;
+  #map;
+  #markers;
+
   constructor() {
-    this.page = 1;
-    this.size = 10;
-    this.stories = [];
-    this.markers = [];
-    this.map = null;
+    // Initialize model and presenter
+    this.#model = new StoriesModel();
+    this.#presenter = new StoriesPresenter({
+      model: this.#model,
+      view: this,
+    });
+    this.#map = null;
+    this.#markers = [];
+  }
+
+  /**
+   * Sets the presenter for this view
+   * @param {Object} presenter - The presenter instance
+   */
+  setPresenter(presenter) {
+    this.#presenter = presenter;
   }
 
   /**
@@ -22,7 +38,7 @@ export default class StoriesPage {
    */
   async render() {
     // Memeriksa autentikasi
-    if (!Auth.checkAuth()) {
+    if (!this.#model.isAuthenticated()) {
       return '';
     }
 
@@ -104,11 +120,10 @@ export default class StoriesPage {
     // Setup skip-to-content handler
     this.setupSkipToContent();
     
-    // Initialize map first
-    this.initMap();
-    
-    // Load stories
-    await this.loadStories();
+    // Initialize presenter
+    if (this.#presenter) {
+      await this.#presenter.init();
+    }
     
     // Setup event listeners
     this.setupEventListeners();
@@ -139,7 +154,7 @@ export default class StoriesPage {
    */
   initMap() {
     // Inisialisasi peta dengan view Indonesia
-    this.map = L.map('storiesMap').setView([-2.5489, 118.0149], 4);
+    this.#map = L.map('storiesMap').setView([-2.5489, 118.0149], 4);
 
     // Definisi layer peta
     const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -162,25 +177,13 @@ export default class StoriesPage {
     };
 
     // Menambahkan layer default
-    osmLayer.addTo(this.map);
+    osmLayer.addTo(this.#map);
 
     // Menambahkan kontrol layer
-    L.control.layers(baseMaps).addTo(this.map);
+    L.control.layers(baseMaps).addTo(this.#map);
 
     // Menambahkan kontrol skala
-    L.control.scale().addTo(this.map);
-
-    // Menambahkan event listener untuk tombol kontrol
-    const currentLocationBtn = document.getElementById('currentLocationBtn');
-    const resetMapBtn = document.getElementById('resetMapBtn');
-
-    if (currentLocationBtn) {
-      currentLocationBtn.addEventListener('click', () => this.zoomToCurrentLocation());
-    }
-
-    if (resetMapBtn) {
-      resetMapBtn.addEventListener('click', () => this.resetMapView());
-    }
+    L.control.scale().addTo(this.#map);
   }
 
   /**
@@ -188,14 +191,8 @@ export default class StoriesPage {
    * Menyesuaikan zoom untuk menampilkan semua marker
    */
   resetMapView() {
-    // Filter cerita yang berada di Indonesia
-    const storiesInIndonesia = this.stories.filter(story => {
-      const lat = parseFloat(story.lat);
-      const lon = parseFloat(story.lon);
-      return !isNaN(lat) && !isNaN(lon) && 
-             lat >= -11 && lat <= 6 && 
-             lon >= 95 && lon <= 141;
-    });
+    // Get stories in Indonesia from presenter
+    const storiesInIndonesia = this.#presenter.getStoriesInIndonesia();
     
     if (storiesInIndonesia.length > 0) {
       try {
@@ -211,7 +208,7 @@ export default class StoriesPage {
         
         // Menyesuaikan tampilan peta
         if (storiesInIndonesia.length > 1) {
-          this.map.fitBounds(bounds, { 
+          this.#map.fitBounds(bounds, { 
             padding: [30, 30],
             maxZoom: 18,
             minZoom: 4
@@ -219,45 +216,16 @@ export default class StoriesPage {
         } else if (storiesInIndonesia.length === 1) {
           // Jika hanya ada satu marker, fokus ke marker tersebut
           const story = storiesInIndonesia[0];
-          this.map.setView([parseFloat(story.lat), parseFloat(story.lon)], 12);
+          this.#map.setView([parseFloat(story.lat), parseFloat(story.lon)], 12);
         }
       } catch (error) {
         console.error('Error resetting map view:', error);
         // Fallback ke view Indonesia jika terjadi error
-        this.map.setView([-2.5489, 118.0149], 4);
+        this.#map.setView([-2.5489, 118.0149], 4);
       }
     } else {
       // Jika tidak ada cerita di Indonesia, tampilkan view Indonesia
-      this.map.setView([-2.5489, 118.0149], 4);
-    }
-  }
-
-  /**
-   * Memuat cerita dari API
-   * Menampilkan cerita dan memperbarui peta
-   */
-  async loadStories() {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.token) {
-      window.location.hash = '#/login';
-      return;
-    }
-
-    try {
-      const responseData = await Api.getStories(this.page, this.size, user.token);
-
-      if (responseData.error === false) {
-        this.stories = [...this.stories, ...responseData.listStory];
-        this.displayStories();
-        this.updateMap();
-        // Reset tampilan peta setelah memuat cerita
-        this.resetMapView();
-      } else {
-        alert(responseData.message || 'Failed to load stories');
-      }
-    } catch (error) {
-      console.error('Error loading stories:', error);
-      // alert('An error occurred while loading stories');
+      this.#map.setView([-2.5489, 118.0149], 4);
     }
   }
 
@@ -266,8 +234,9 @@ export default class StoriesPage {
    */
   displayStories() {
     const storiesList = document.getElementById('storiesList');
+    const stories = this.#presenter.getStories();
     
-    if (this.stories.length === 0) {
+    if (stories.length === 0) {
       storiesList.innerHTML = `
         <div class="text-center py-4" role="status" aria-live="polite">
           <i class="bi bi-inbox text-2xl text-gray-300" aria-hidden="true"></i>
@@ -277,7 +246,7 @@ export default class StoriesPage {
       return;
     }
     
-    storiesList.innerHTML = this.stories.map((story, index) => `
+    storiesList.innerHTML = stories.map((story, index) => `
       <div 
         class="story-card bg-white rounded shadow-sm hover:shadow transition-shadow" 
         role="article"
@@ -326,7 +295,7 @@ export default class StoriesPage {
       button.addEventListener('click', () => {
         const lat = parseFloat(button.dataset.lat);
         const lon = parseFloat(button.dataset.lon);
-        this.map.setView([lat, lon], 15);
+        this.navigateToLocation(lat, lon);
       });
     });
 
@@ -345,15 +314,31 @@ export default class StoriesPage {
   }
 
   /**
+   * Navigate to specific location on the map
+   * @param {number} lat - Latitude
+   * @param {number} lon - Longitude
+   */
+  navigateToLocation(lat, lon) {
+    if (this.#map) {
+      this.#map.setView([lat, lon], 15);
+    }
+  }
+
+  /**
    * Memperbarui marker di peta
    */
   updateMap() {
     // Hapus marker lama
-    this.markers.forEach(marker => marker.remove());
-    this.markers = [];
+    if (this.#markers.length > 0) {
+      this.#markers.forEach(marker => marker.remove());
+      this.#markers = [];
+    }
+
+    // Get stories from presenter
+    const stories = this.#presenter.getStories();
 
     // Tambahkan marker baru
-    this.stories.forEach(story => {
+    stories.forEach(story => {
       if (story.lat && story.lon) {
         const lat = parseFloat(story.lat);
         const lon = parseFloat(story.lon);
@@ -369,28 +354,15 @@ export default class StoriesPage {
               </div>
             `);
           
-          marker.addTo(this.map);
-          this.markers.push(marker);
+          marker.addTo(this.#map);
+          this.#markers.push(marker);
         }
       }
     });
   }
 
   /**
-   * Mengatur tombol load more
-   */
-  setupLoadMore() {
-    const loadMoreBtn = document.getElementById('loadMoreBtn');
-    if (loadMoreBtn) {
-      loadMoreBtn.addEventListener('click', async () => {
-        this.page += 1;
-        await this.loadStories();
-      });
-    }
-  }
-
-  /**
-   * Zoom ke lokasi pengguna saat ini
+   * Zoom to user's current location
    */
   async zoomToCurrentLocation() {
     if (navigator.geolocation) {
@@ -400,14 +372,22 @@ export default class StoriesPage {
         });
 
         const { latitude, longitude } = position.coords;
-        this.map.setView([latitude, longitude], 15);
+        this.#map.setView([latitude, longitude], 15);
       } catch (error) {
         console.error('Error getting location:', error);
-        alert('Unable to get your current location');
+        this.showError('Unable to get your current location');
       }
     } else {
-      alert('Geolocation is not supported by your browser');
+      this.showError('Geolocation is not supported by your browser');
     }
+  }
+
+  /**
+   * Shows an error message to the user
+   * @param {string} message - Error message to display
+   */
+  showError(message) {
+    alert(message);
   }
 
   /**
@@ -418,8 +398,9 @@ export default class StoriesPage {
     const loadMoreBtn = document.getElementById('loadMoreBtn');
     if (loadMoreBtn) {
       loadMoreBtn.addEventListener('click', async () => {
-        this.page += 1;
-        await this.loadStories();
+        if (this.#presenter) {
+          await this.#presenter.loadMoreStories();
+        }
       });
     }
 
@@ -428,11 +409,19 @@ export default class StoriesPage {
     const resetMapBtn = document.getElementById('resetMapBtn');
 
     if (currentLocationBtn) {
-      currentLocationBtn.addEventListener('click', () => this.zoomToCurrentLocation());
+      currentLocationBtn.addEventListener('click', () => {
+        if (this.#presenter) {
+          this.#presenter.zoomToCurrentLocation();
+        }
+      });
     }
 
     if (resetMapBtn) {
-      resetMapBtn.addEventListener('click', () => this.resetMapView());
+      resetMapBtn.addEventListener('click', () => {
+        if (this.#presenter) {
+          this.#presenter.resetMapView();
+        }
+      });
     }
   }
-}
+} 

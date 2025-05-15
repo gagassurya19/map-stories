@@ -1,18 +1,28 @@
-import Api from '../../../data/api';
-import LoginPresenter from './login-presenter';
 import '../../../../styles/pages/auth.css';
+import LoginModel from './login-model.js';
+import LoginPresenter from './login-presenter.js';
 
 /**
- * Kelas LoginPage
- * Menangani tampilan dan interaksi halaman login
+ * View class for the login page
+ * Handles rendering and UI interactions for the login page
  */
-export default class LoginPage {
+export default class LoginView {
   #presenter;
+  #model;
 
   constructor() {
-    this.#presenter = new LoginPresenter({ model: Api, view: this });
+    // Initialize model and presenter
+    this.#model = new LoginModel();
+    this.#presenter = new LoginPresenter({
+      model: this.#model,
+      view: this,
+    });
   }
 
+  /**
+   * Sets the presenter for this view
+   * @param {Object} presenter - The presenter instance
+   */
   setPresenter(presenter) {
     this.#presenter = presenter;
   }
@@ -89,15 +99,13 @@ export default class LoginPage {
    * Mengatur event listener untuk form login
    */
   async afterRender() {
-    console.log('afterRender called');
-    if (this.#presenter) {
-      await this.#presenter.init();
-    }
+    this.setupEventListeners();
   }
 
-  // View methods that can be called by the presenter
+  /**
+   * Sets up all event listeners for the login form
+   */
   setupEventListeners() {
-    console.log('setupEventListeners called');
     const loginForm = document.getElementById('loginForm');
     const loginButton = document.getElementById('loginButton');
     
@@ -106,45 +114,59 @@ export default class LoginPage {
       return;
     }
 
+    if (!loginButton) {
+      console.error('Login button not found!');
+      return;
+    }
+
     // Add click event to button
-    loginButton.addEventListener('click', async (e) => {
-      console.log('Login button clicked');
+    loginButton.addEventListener('click', (e) => {
       e.preventDefault();
       
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
-      console.log('Attempting login with:', { email });
-
       if (this.#presenter) {
-        await this.#presenter.handleLogin(email, password);
+        this.#presenter.handleLogin(email, password);
       } else {
         console.error('Presenter not set!');
       }
     });
 
     // Also keep form submit handler as backup
-    loginForm.addEventListener('submit', async (e) => {
-      console.log('Form submitted');
+    loginForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
       if (this.#presenter) {
-        await this.#presenter.handleLogin(email, password);
+        this.#presenter.handleLogin(email, password);
+      } else {
+        console.error('Presenter not set!');
       }
     });
   }
 
+  /**
+   * Shows a success message to the user
+   * @param {string} message - Success message to display
+   */
   showSuccess(message) {
     alert(message);
   }
 
+  /**
+   * Shows an error message to the user
+   * @param {string} message - Error message to display
+   */
   showError(message) {
     alert(message);
   }
 
+  /**
+   * Redirects the user to the stories page
+   */
   redirectToStories() {
     window.location.hash = '#/stories';
     window.location.reload();

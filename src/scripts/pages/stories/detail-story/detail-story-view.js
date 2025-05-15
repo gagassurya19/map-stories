@@ -1,20 +1,42 @@
-import Api from '../../data/api';
-import Auth from '../../utils/auth';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import DetailStoryModel from './detail-story-model.js';
+import DetailStoryPresenter from './detail-story-presenter.js';
 
 /**
- * Kelas DetailStoryPage
- * Menangani tampilan dan interaksi halaman detail cerita
+ * View class for the detail story page
+ * Handles rendering and UI interactions for the detail story page
  */
-export default class DetailStoryPage {
+export default class DetailStoryView {
+  #presenter;
+  #model;
+  #map;
+
+  constructor() {
+    // Initialize model and presenter
+    this.#model = new DetailStoryModel();
+    this.#presenter = new DetailStoryPresenter({
+      model: this.#model,
+      view: this,
+    });
+    this.#map = null;
+  }
+
+  /**
+   * Sets the presenter for this view
+   * @param {Object} presenter - The presenter instance
+   */
+  setPresenter(presenter) {
+    this.#presenter = presenter;
+  }
+
   /**
    * Merender konten halaman detail cerita
    * @returns {string} HTML string untuk halaman detail cerita
    */
   async render() {
     // Memeriksa autentikasi
-    if (!Auth.checkAuth()) {
+    if (!this.#model.isAuthenticated()) {
       return '';
     }
     return `
@@ -41,47 +63,30 @@ export default class DetailStoryPage {
 
   /**
    * Menangani interaksi setelah halaman dirender
-   * Memuat detail cerita berdasarkan ID
+   * Gets story ID from URL and initializes the presenter
    */
   async afterRender() {
-    const storyId = window.location.hash.split('/')[2];
-    await this.loadStoryDetail(storyId);
-  }
-
-  /**
-   * Memuat detail cerita dari API
-   * @param {string} storyId - ID cerita yang akan dimuat
-   */
-  async loadStoryDetail(storyId) {
-    const user = JSON.parse(localStorage.getItem('user'));
-    if (!user || !user.token) {
-      alert('Silakan login terlebih dahulu');
-      window.location.hash = '#/login';
-      return;
-    }
-
-    try {
-      const responseData = await Api.getStoryDetail(storyId, user.token);
-
-      if (responseData.error === false) {
-        this.displayStoryDetail(responseData.story);
-        if (responseData.story.lat && responseData.story.lon) {
-          this.initMap(responseData.story);
-        }
-      } else {
-        alert(responseData.message || 'Gagal memuat detail cerita');
-      }
-    } catch (error) {
-      console.error('Error loading story detail:', error);
-      alert('Terjadi kesalahan saat memuat detail cerita');
+    const storyId = this.getStoryIdFromUrl();
+    if (this.#presenter) {
+      await this.#presenter.init(storyId);
     }
   }
 
   /**
-   * Menampilkan detail cerita di halaman
-   * @param {Object} story - Data cerita yang akan ditampilkan
+   * Gets the story ID from the URL
+   * @returns {string} Story ID from the URL
    */
-  displayStoryDetail(story) {
+  getStoryIdFromUrl() {
+    return window.location.hash.split('/')[2];
+  }
+
+  /**
+   * Displays the story details on the page
+   */
+  displayStoryDetail() {
+    const story = this.#presenter.getStory();
+    if (!story) return;
+    
     const storyDetail = document.getElementById('storyDetail');
     storyDetail.innerHTML = `
       <div class="space-y-6">
@@ -107,7 +112,7 @@ export default class DetailStoryPage {
           <p class="text-lg text-gray-700 leading-relaxed">${story.description}</p>
         </div>
 
-        ${story.lat && story.lon ? `
+        ${this.#presenter.hasLocation() ? `
           <!-- Bagian Lokasi -->
           <div class="mb-4">
             <h5 class="mb-3 flex items-center">
@@ -122,27 +127,27 @@ export default class DetailStoryPage {
   }
 
   /**
-   * Inisialisasi peta untuk menampilkan lokasi cerita
-   * @param {Object} story - Data cerita yang berisi informasi lokasi
+   * Initializes the map to display story location
    */
-  initMap(story) {
+  initMap() {
     const mapContainer = document.getElementById('storyMap');
     if (!mapContainer) return;
 
-    const lat = parseFloat(story.lat);
-    const lon = parseFloat(story.lon);
+    const coordinates = this.#presenter.getCoordinates();
+    if (!coordinates) return;
+    
+    const { lat, lon } = coordinates;
+    const story = this.#presenter.getStory();
 
-    if (isNaN(lat) || isNaN(lon)) return;
+    // Initialize map
+    this.#map = L.map('storyMap').setView([lat, lon], 15);
 
-    // Inisialisasi peta
-    const map = L.map('storyMap').setView([lat, lon], 15);
-
-    // Menambahkan layer peta
+    // Add map tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(map);
+    }).addTo(this.#map);
 
-    // Membuat ikon marker kustom
+    // Create custom marker icon
     const storyIcon = L.divIcon({
       className: 'story-marker',
       html: `
@@ -152,9 +157,9 @@ export default class DetailStoryPage {
       iconAnchor: [8, 8]
     });
 
-    // Menambahkan marker dan popup
+    // Add marker with popup
     L.marker([lat, lon], { icon: storyIcon })
-      .addTo(map)
+      .addTo(this.#map)
       .bindPopup(`
         <div class="text-center">
           <img src="${story.photoUrl}" class="img-fluid rounded mb-2" style="max-height: 100px; width: auto;" alt="${story.name}">
@@ -163,5 +168,13 @@ export default class DetailStoryPage {
         </div>
       `)
       .openPopup();
+  }
+
+  /**
+   * Shows an error message to the user
+   * @param {string} message - Error message to display
+   */
+  showError(message) {
+    alert(message);
   }
 } 

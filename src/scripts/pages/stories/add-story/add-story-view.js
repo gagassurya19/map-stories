@@ -1,20 +1,50 @@
-import Api from '../../data/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import Auth from '../../utils/auth';
+import AddStoryModel from './add-story-model.js';
+import AddStoryPresenter from './add-story-presenter.js';
 
 /**
- * Kelas AddStoriesPage
- * Menangani tampilan dan interaksi halaman tambah cerita baru
+ * View class for the add story page
+ * Handles rendering and UI interactions
  */
-export default class AddStoriesPage {
+export default class AddStoryView {
+  #presenter;
+  #model;
+  #map;
+  #marker;
+  #mediaStream;
+  #capturedBlob;
+
+  constructor() {
+    // Initialize model and presenter
+    this.#model = new AddStoryModel();
+    this.#presenter = new AddStoryPresenter({
+      model: this.#model,
+      view: this,
+    });
+    
+    // Initialize instance variables
+    this.#map = null;
+    this.#marker = null;
+    this.#mediaStream = null;
+    this.#capturedBlob = null;
+  }
+
   /**
-   * Merender konten halaman tambah cerita
-   * @returns {string} HTML string untuk halaman tambah cerita
+   * Sets the presenter for this view
+   * @param {Object} presenter - The presenter instance
+   */
+  setPresenter(presenter) {
+    this.#presenter = presenter;
+  }
+
+  /**
+   * Renders the add story page content
+   * @returns {string} HTML string for the add story page
    */
   async render() {
-    // Memeriksa autentikasi
-    if (!Auth.checkAuth()) {
+    // Check if user is authenticated
+    if (!this.#model.isAuthenticated()) {
       return '';
     }
 
@@ -168,263 +198,256 @@ export default class AddStoriesPage {
   }
 
   /**
-   * Menangani interaksi setelah halaman dirender
-   * Mengatur event listener dan inisialisasi komponen
+   * Sets up event listeners and initializes the page
    */
   async afterRender() {
-    // Inisialisasi elemen form
-    const addStoryForm = document.getElementById('addStoryForm');
+    // Initialize presenter
+    this.#presenter.init();
+    
+    // Set up event listeners
+    this.#setupLocationEvents();
+    this.#setupPhotoEvents();
+    this.#setupFormSubmission();
+  }
+
+  /**
+   * Sets up location-related event listeners
+   */
+  #setupLocationEvents() {
     const includeLocation = document.getElementById('includeLocation');
     const locationFields = document.getElementById('locationFields');
+    const mapContainer = document.getElementById('mapContainer');
+    const getCurrentLocationBtn = document.getElementById('getCurrentLocation');
     
-    // Inisialisasi elemen foto
+    // Event listener for location checkbox
+    includeLocation.addEventListener('change', () => {
+      if (includeLocation.checked) {
+        locationFields.style.display = 'block';
+        getCurrentLocationBtn.style.display = 'block';
+        
+        // Initialize map with a slight delay
+        setTimeout(() => {
+          if (!this.#map) {
+            this.#initMap();
+          }
+        }, 100);
+      } else {
+        locationFields.style.display = 'none';
+        getCurrentLocationBtn.style.display = 'none';
+        
+        // Clean up map
+        if (this.#map) {
+          this.#map.remove();
+          this.#map = null;
+          this.#marker = null;
+        }
+      }
+    });
+    
+    // Event listener for current location button
+    getCurrentLocationBtn.addEventListener('click', async () => {
+      try {
+        const location = await this.#presenter.getCurrentLocation();
+        this.#updateLocationFields(location.latitude, location.longitude);
+      } catch (error) {
+        this.showError('Could not get your location. Make sure location services are enabled.');
+      }
+    });
+  }
+
+  /**
+   * Initializes the map
+   */
+  #initMap() {
+    const mapContainer = document.getElementById('mapContainer');
+    
+    // Create map centered on Jakarta by default
+    this.#map = L.map(mapContainer).setView([-6.2088, 106.8456], 13);
+
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(this.#map);
+    
+    // Add click event to map
+    this.#map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+      this.#updateLocationFields(lat, lng);
+    });
+  }
+
+  /**
+   * Updates location fields and marker
+   * @param {number} lat - Latitude
+   * @param {number} lng - Longitude
+   */
+  #updateLocationFields(lat, lng) {
+    // Update input fields
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+    
+    // Update marker on map
+    if (this.#map) {
+      // Remove existing marker if any
+      if (this.#marker) {
+        this.#map.removeLayer(this.#marker);
+      }
+      
+      // Add new marker
+      this.#marker = L.marker([lat, lng]).addTo(this.#map);
+      
+      // Center map on new location
+      this.#map.setView([lat, lng], 15);
+    }
+  }
+
+  /**
+   * Sets up photo-related event listeners
+   */
+  #setupPhotoEvents() {
     const photoFile = document.getElementById('photoFile');
     const previewContainer = document.getElementById('previewContainer');
     const imagePreview = document.getElementById('imagePreview');
-    
-    // Inisialisasi elemen kamera
     const openCameraBtn = document.getElementById('openCameraBtn');
     const cameraModal = document.getElementById('cameraModal');
     const cameraStream = document.getElementById('cameraStream');
     const captureBtn = document.getElementById('captureBtn');
     const closeCameraBtn = document.getElementById('closeCameraBtn');
-    const mapContainer = document.getElementById('mapContainer');
     
-    // Variabel untuk menyimpan data
-    let capturedBlob = null;
-    let mediaStream = null;
-    let map = null;
-    let marker = null;
-
-    // Event listener untuk checkbox lokasi
-    includeLocation.addEventListener('change', () => {
-      if (includeLocation.checked) {
-        locationFields.style.display = 'block';
-        document.getElementById('getCurrentLocation').style.display = 'block';
-        // Menambahkan delay kecil untuk memastikan container sudah dirender
-        setTimeout(() => {
-          if (!map) {
-            map = L.map(mapContainer).setView([-6.2088, 106.8456], 13); // Default ke Jakarta
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-              attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            }).addTo(map);
-          
-            map.on('click', (e) => {
-              const { lat, lng } = e.latlng;
-              document.getElementById('latitude').value = lat;
-              document.getElementById('longitude').value = lng;
-            
-              if (marker) {
-                map.removeLayer(marker);
-              }
-            
-              marker = L.marker([lat, lng]).addTo(map);
-            });
-          }
-        }, 100);
-      } else {
-        locationFields.style.display = 'none';
-        document.getElementById('getCurrentLocation').style.display = 'none';
-        if (map) {
-          map.remove();
-          map = null;
-        }
-      }
-    });
-
-    // Event listener untuk tombol lokasi saat ini
-    document.getElementById('getCurrentLocation').addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        alert('Geolokasi tidak didukung oleh browser Anda');
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          
-          // Memperbarui input fields
-          document.getElementById('latitude').value = latitude;
-          document.getElementById('longitude').value = longitude;
-          
-          // Memperbarui peta
-          if (map) {
-            map.setView([latitude, longitude], 15);
-            
-            if (marker) {
-              map.removeLayer(marker);
-            }
-            
-            marker = L.marker([latitude, longitude]).addTo(map);
-          }
-        },
-        (error) => {
-          alert('Tidak dapat mengambil lokasi Anda. Pastikan layanan lokasi diaktifkan.');
-          console.error('Error getting location:', error);
-        }
-      );
-    });
-
-    // Event listener untuk preview foto dari file
+    // File upload preview
     photoFile.addEventListener('change', () => {
-      capturedBlob = null;
+      this.#capturedBlob = null;
       const file = photoFile.files[0];
       if (!file) return;
-    
+      
       if (file.size > 1024 * 1024) {
-        alert('File harus kurang dari 1MB');
+        this.showError('File must be less than 1MB');
         photoFile.value = '';
         previewContainer.style.display = 'none';
         return;
       }
-    
+      
       const reader = new FileReader();
-      reader.onload = e => {
+      reader.onload = (e) => {
         imagePreview.src = e.target.result;
         previewContainer.style.display = 'block';
       };
       reader.readAsDataURL(file);
     });
-
-    // Event listener untuk modal kamera
-    captureBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+    
+    // Open camera button
+    openCameraBtn.addEventListener('click', async () => {
+      try {
+        this.#mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        cameraStream.srcObject = this.#mediaStream;
+        cameraModal.style.display = 'flex';
+      } catch (error) {
+        this.showError('Could not access camera');
+      }
+    });
+    
+    // Capture photo button
+    captureBtn.addEventListener('click', () => {
       const canvas = document.createElement('canvas');
       canvas.width = cameraStream.videoWidth;
       canvas.height = cameraStream.videoHeight;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(cameraStream, 0, 0);
-    
-      canvas.toBlob(blob => {
+      
+      canvas.toBlob((blob) => {
         if (blob.size > 1024 * 1024) {
-          alert('Foto yang diambil harus < 1MB');
+          this.showError('Captured photo must be less than 1MB');
           return;
         }
-      
-        capturedBlob = blob;
+        
+        this.#capturedBlob = blob;
         const imageUrl = URL.createObjectURL(blob);
         imagePreview.src = imageUrl;
         previewContainer.style.display = 'block';
-      
-        // Menutup modal
-        if (mediaStream) {
-          mediaStream.getTracks().forEach(track => track.stop());
-          mediaStream = null;
-        }
-        cameraModal.style.display = 'none';
+        
+        // Close camera modal
+        this.#closeCamera();
       }, 'image/jpeg', 0.9);
     });
-
-    // Mencegah submit form dari modal kamera
+    
+    // Close camera button
+    closeCameraBtn.addEventListener('click', () => {
+      this.#closeCamera();
+    });
+    
+    // Prevent form submission from modal
     cameraModal.addEventListener('submit', (e) => {
       e.preventDefault();
     });
+  }
 
-    // Event listener untuk tombol kamera
-    openCameraBtn.addEventListener('click', async (e) => {
-      e.preventDefault();
-      try {
-        mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        cameraStream.srcObject = mediaStream;
-        cameraModal.style.display = 'flex';
-      } catch (err) {
-        alert('Tidak dapat mengakses kamera');
-        console.error(err);
-      }
-    });
+  /**
+   * Closes the camera and stops all tracks
+   */
+  #closeCamera() {
+    const cameraModal = document.getElementById('cameraModal');
+    
+    if (this.#mediaStream) {
+      this.#mediaStream.getTracks().forEach(track => track.stop());
+      this.#mediaStream = null;
+    }
+    
+    cameraModal.style.display = 'none';
+  }
 
-    closeCameraBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (mediaStream) {
-        mediaStream.getTracks().forEach(track => track.stop());
-        mediaStream = null;
-      }
-      cameraModal.style.display = 'none';
-    });
-
-    // Event listener untuk submit form
+  /**
+   * Sets up form submission
+   */
+  #setupFormSubmission() {
+    const addStoryForm = document.getElementById('addStoryForm');
+    
     addStoryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Hanya lanjutkan jika tombol submit diklik
-      if (e.submitter && e.submitter.type === 'submit') {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user || !user.token) {
-          alert('Silakan login terlebih dahulu');
-          window.location.hash = '#/login';
-          return;
-        }
-
-        try {
-          // Mengambil elemen form
-          const description = document.getElementById('description').value.trim();
-          const file = photoFile.files[0];
-          const includeLocation = document.getElementById('includeLocation').checked;
-          const lat = document.getElementById('latitude').value;
-          const lon = document.getElementById('longitude').value;
-        
-          // Validasi deskripsi
-          if (!description) {
-            alert('Silakan masukkan deskripsi cerita');
-            return;
-          }
-        
-          // Validasi foto
-          if (!file && !capturedBlob) {
-            alert('Silakan pilih atau ambil foto');
-            return;
-          }
-        
-          // Validasi lokasi jika disertakan
-          if (includeLocation && (!lat || !lon)) {
-            alert('Silakan pilih lokasi di peta atau gunakan lokasi saat ini');
-            return;
-          }
-        
-          const formData = new FormData();
-          formData.append('description', description);
-        
-          if (file) {
-            if (file.size > 1024 * 1024) {
-              alert('File harus kurang dari 1MB');
-              return;
-            }
-            formData.append('photo', file);
-          } else if (capturedBlob) {
-            formData.append('photo', capturedBlob, 'captured.jpg');
-          }
-        
-          if (includeLocation) {
-            formData.append('lat', lat);
-            formData.append('lon', lon);
-          }
-        
-          // Menonaktifkan tombol submit untuk mencegah pengiriman ganda
-          const submitButton = addStoryForm.querySelector('button[type="submit"]');
-          submitButton.disabled = true;
-          submitButton.textContent = 'Mengirim...';
-          
-          const responseData = await Api.addStory(formData, user.token);
-
-          if (responseData.error === false) {
-            alert('Cerita berhasil ditambahkan!');
-            window.location.hash = '#/stories';
-          } else {
-            alert(responseData.message || 'Gagal menambahkan cerita');
-            // Mengaktifkan kembali tombol submit jika terjadi error
-            submitButton.disabled = false;
-            submitButton.textContent = 'Kirim Cerita';
-          }
-        } catch (error) {
-          console.error('Error adding story:', error);
-          alert('Terjadi kesalahan saat menambahkan cerita');
-          // Mengaktifkan kembali tombol submit jika terjadi error
-          const submitButton = addStoryForm.querySelector('button[type="submit"]');
-          submitButton.disabled = false;
-          submitButton.textContent = 'Kirim Cerita';
-        }
-      }
+      // Gather form data
+      const formData = {
+        description: document.getElementById('description').value.trim(),
+        file: document.getElementById('photoFile').files[0],
+        capturedBlob: this.#capturedBlob,
+        includeLocation: document.getElementById('includeLocation').checked,
+        lat: document.getElementById('latitude').value,
+        lon: document.getElementById('longitude').value
+      };
+      
+      // Submit form via presenter
+      await this.#presenter.submitForm(formData);
     });
+  }
+
+  /**
+   * Shows or hides loading state
+   * @param {boolean} isLoading - Whether to show or hide loading state
+   */
+  showLoading(isLoading) {
+    const submitButton = document.querySelector('button[type="submit"]');
+    
+    if (isLoading) {
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+    } else {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Submit Story';
+    }
+  }
+
+  /**
+   * Shows an error message
+   * @param {string} message - Error message to display
+   */
+  showError(message) {
+    alert(message);
+  }
+
+  /**
+   * Shows a success message
+   * @param {string} message - Success message to display
+   */
+  showSuccess(message) {
+    alert(message);
   }
 }
