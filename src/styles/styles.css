@@ -249,3 +249,28 @@ header {
   from { opacity: 1; }
   to   { opacity: 0; }
 }
+
+.push-notification-item {
+  display: flex;
+  align-items: center;
+}
+
+.push-notification-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.push-notification-button:hover {
+  color: #2c5282;
+}
+
+.push-notification-button i {
+  font-size: 1.2rem;
+}

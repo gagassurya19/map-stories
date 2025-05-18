@@ -3,6 +3,7 @@ import '../styles/styles.css';
 
 // Import Modul Utama
 import App from './pages/app';
+import { registerServiceWorker } from './utils';
 import Auth from './utils/auth';
 
 /**
@@ -41,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       mainContent.style.opacity = 1;
     }, 10);
   }
+
+  await registerServiceWorker();
 
   // Menangani perubahan hash URL untuk navigasi
   window.addEventListener('hashchange', async () => {

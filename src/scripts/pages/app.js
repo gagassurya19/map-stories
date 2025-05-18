@@ -1,5 +1,10 @@
 import routes from '../routes/routes';
 import { getActiveRoute } from '../routes/url-parser';
+import { generateUnsubscribeButton, generateSubscribeButton } from '../template';
+import { isServiceWorkerAvailable } from '../utils';
+import { isCurrentPushSubscriptionAvailable, subscribe, unsubscribe } from '../utils/notification-helper';
+import { getPushSubscription } from '../utils/notification-helper';
+import API from '../data/api';
 
 /**
  * Kelas App
@@ -58,6 +63,35 @@ class App {
     });
   }
 
+  async #setupPushNotification() {
+    const navList = document.getElementById('nav-list');
+    const isSubscribed = await isCurrentPushSubscriptionAvailable();
+    
+    // Remove existing notification buttons if any
+    const existingButtons = navList.querySelectorAll('.push-notification-item');
+    existingButtons.forEach(button => button.remove());
+    
+    if (isSubscribed) {
+      const unsubscribeButton = generateUnsubscribeButton();
+      navList.insertAdjacentHTML('beforeend', unsubscribeButton);
+      document.getElementById('unsubscribe-button').addEventListener('click', async () => {
+        console.log('unsubscribe');
+        await unsubscribe();
+        this.#setupPushNotification();
+      });
+      return;
+    }
+
+    const subscribeButton = generateSubscribeButton();
+    navList.insertAdjacentHTML('beforeend', subscribeButton);
+    
+    document.getElementById('subscribe-button').addEventListener('click', async () => {
+      console.log('subscribe');
+      await subscribe();
+      this.#setupPushNotification();
+    });
+  }
+
   /**
    * Merender halaman berdasarkan route yang aktif
    * Menangani animasi transisi antar halaman
@@ -95,6 +129,10 @@ class App {
         await enterAnimation.finished;
       }
       await page.afterRender();
+    }
+    
+    if (isServiceWorkerAvailable()) {
+      this.#setupPushNotification();
     }
   }
 }

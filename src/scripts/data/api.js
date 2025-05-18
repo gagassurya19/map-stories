@@ -4,6 +4,11 @@
 const BASE_URL = 'https://story-api.dicoding.dev/v1';
 
 /**
+ * VAPID public key untuk push notification
+ */
+const VAPID_PUBLIC_KEY = 'BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk';
+
+/**
  * Konfigurasi endpoint API
  * Berisi semua endpoint yang digunakan dalam aplikasi
  */
@@ -13,7 +18,26 @@ const ENDPOINTS = {
   STORIES: `${BASE_URL}/stories`,
   STORY_DETAIL: (id) => `${BASE_URL}/stories/${id}`,
   GUEST_STORY: `${BASE_URL}/stories/guest`,
+  SUBSCRIBE: `${BASE_URL}/notifications/subscribe`,
+  UNSUBSCRIBE: `${BASE_URL}/notifications/subscribe`,
 };
+
+/**
+ * Mengambil token akses dari localStorage
+ * @returns {string|null} Token akses atau null jika tidak ada
+ */
+function getAccessToken() {
+  const user = localStorage.getItem('user');
+  if (!user) return null;
+
+  try {
+    const userData = JSON.parse(user);
+    return userData.token;
+  } catch (error) {
+    console.error('Error parsing user data:', error);
+    return null;
+  }
+}
 
 /**
  * Kelas Api
@@ -114,6 +138,76 @@ class Api {
       body: formData,
     });
     return response.json();
+  }
+
+  static async subscribePushNotification({ endpoint, keys: { p256dh, auth } }) {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      return {
+        error: true,
+        message: 'User not authenticated',
+      };
+    }
+
+    const data = JSON.stringify({
+      endpoint,
+      keys: {
+        p256dh,
+        auth,
+      },
+    });
+   
+    try {
+      const fetchResponse = await fetch(ENDPOINTS.SUBSCRIBE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: data,
+      });
+      const json = await fetchResponse.json();
+     
+      return json;
+    } catch (error) {
+      console.error('Error subscribing to push notifications:', error);
+      return {
+        error: true,
+        message: 'Failed to subscribe to push notifications',
+      };
+    }
+  }
+   
+  static async unsubscribePushNotification({ endpoint }) {
+    const accessToken = getAccessToken();
+    if (!accessToken) {
+      return {
+        error: true,
+        message: 'User not authenticated',
+      };
+    }
+
+    const data = JSON.stringify({ endpoint });
+   
+    try {
+      const fetchResponse = await fetch(ENDPOINTS.UNSUBSCRIBE, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+        },
+        body: data,
+      });
+      const json = await fetchResponse.json();
+     
+      return json;
+    } catch (error) {
+      console.error('Error unsubscribing from push notifications:', error);
+      return {
+        error: true,
+        message: 'Failed to unsubscribe from push notifications',
+      };
+    }
   }
 }
 
