@@ -1,4 +1,4 @@
-import routes from '../routes/routes';
+import routes, { getPage } from '../routes/routes';
 import { getActiveRoute } from '../routes/url-parser';
 import { generateUnsubscribeButton, generateSubscribeButton } from '../template';
 import { isServiceWorkerAvailable } from '../utils';
@@ -98,7 +98,7 @@ class App {
    */
   async renderPage() {
     const url = getActiveRoute();
-    const page = routes[url];
+    const page = getPage(url);
 
     // Gunakan View Transition API jika tersedia
     if (document.startViewTransition) {
