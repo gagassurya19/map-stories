@@ -7,7 +7,7 @@
     "description": "Aplikasi pencatatan lokasi yang memungkinkan pengguna untuk membuat catatan lokasi dan membagikannya dengan orang lain.",
     "display": "standalone",
     "background_color": "#FFFFFF",
-    "theme_color": "#d97706",
+    "theme_color": "#2c5282",
     "icons": [
       {
         "src": "/images/icons/icon-x144.png",

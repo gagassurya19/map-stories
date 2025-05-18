@@ -1,5 +1,6 @@
 // Import CSS
 import '../styles/styles.css';
+import 'leaflet/dist/leaflet.css';
 
 // Import Modul Utama
 import App from './pages/app';

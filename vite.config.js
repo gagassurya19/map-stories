@@ -21,7 +21,7 @@ export default defineConfig({
         name: 'MapNotes - Aplikasi Pencatatan Lokasi',
         short_name: 'MapNotes',
         description: 'Aplikasi pencatatan lokasi yang memungkinkan pengguna untuk membuat catatan lokasi dan membagikannya dengan orang lain.',
-        theme_color: '#d97706',
+        theme_color: '#2c5282',
         background_color: '#FFFFFF',
         display: 'standalone',
         scope: '/',
