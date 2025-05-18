@@ -2,6 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import StoriesModel from './stories-model.js';
 import StoriesPresenter from './stories-presenter.js';
+import Api from '../../../data/api';
 
 /**
  * View class for the stories page
@@ -230,9 +231,52 @@ export default class StoriesView {
   }
 
   /**
+   * Merender kartu cerita
+   * @param {Object} story - Data cerita
+   * @returns {string} HTML string untuk kartu cerita
+   */
+  async renderStoryCard(story) {
+    const imageUrl = await Api.getImageUrl(story.photoUrl);
+    return `
+      <div class="story-card" data-id="${story.id}">
+        <img src="${imageUrl}" alt="${story.name}" class="story-image" loading="lazy">
+        <div class="story-content">
+          <h3>${story.name}</h3>
+          <p>${story.description}</p>
+          <div class="story-meta">
+            <span class="story-date">${new Date(story.createdAt).toLocaleDateString()}</span>
+            <button class="view-detail-btn" data-id="${story.id}">View Details</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Merender daftar cerita
+   * @param {Array} stories - Array data cerita
+   * @returns {string} HTML string untuk daftar cerita
+   */
+  async renderStories(stories) {
+    if (!stories || stories.length === 0) {
+      return '<p class="no-stories">No stories found</p>';
+    }
+
+    const storyCards = await Promise.all(
+      stories.map(story => this.renderStoryCard(story))
+    );
+
+    return `
+      <div class="stories-container">
+        ${storyCards.join('')}
+      </div>
+    `;
+  }
+
+  /**
    * Menampilkan daftar cerita di sidebar
    */
-  displayStories() {
+  async displayStories() {
     const storiesList = document.getElementById('storiesList');
     const stories = this.#presenter.getStories();
     
@@ -245,72 +289,99 @@ export default class StoriesView {
       `;
       return;
     }
-    
-    storiesList.innerHTML = stories.map((story, index) => `
-      <div 
-        class="story-card bg-white rounded shadow-sm hover:shadow transition-shadow" 
-        role="article"
-        tabindex="0"
-        aria-label="Story by ${story.name}"
-      >
-        <div class="relative">
-          <img src="${story.photoUrl}" class="w-full h-32 object-cover rounded-t" alt="Story image by ${story.name}">
-          ${story.lat && story.lon ? `
-            <div class="absolute bottom-1 right-1">
-              <span class="inline-flex items-center px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full">
-                <i class="bi bi-geo-alt-fill mr-0.5" aria-hidden="true"></i> ${story.lat}, ${story.lon}
-              </span>
-            </div>
-          ` : ''}
+
+    // Show loading state
+    storiesList.innerHTML = `
+      <div class="text-center py-3" role="status" aria-live="polite">
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+          <span class="visually-hidden">Loading stories...</span>
         </div>
-        <div class="p-2">
-          <div class="flex items-center justify-between">
-            <h3 class="font-medium text-sm text-gray-800">${story.name}</h3>
-            <span class="text-xs text-gray-500">
-              <i class="bi bi-calendar3" aria-hidden="true"></i> ${new Date(story.createdAt).toLocaleDateString()}
-            </span>
-          </div>
-          <p class="text-xs text-gray-600 mt-1 line-clamp-2">${story.description}</p>
-          <div class="flex items-center justify-between gap-2 mt-1">
-            <a href="#/stories/${story.id}" class="inline-block text-xs text-blue-600 hover:text-blue-800" aria-label="View story details">
-              See details <i class="bi bi-arrow-right" aria-hidden="true"></i>
-            </a>
-            ${story.lat && story.lon ? `
-              <button 
-                class="navigate-btn inline-flex items-center text-xs text-green-600 hover:text-green-800"
-                data-lat="${story.lat}"
-                data-lon="${story.lon}"
-                aria-label="View this story on map"
-              >
-                <i class="bi bi-geo-alt" aria-hidden="true"></i> View on map
-              </button>
-            ` : ''}
-          </div>
-        </div>
+        <p class="mt-1 text-sm text-gray-500">Loading stories...</p>
       </div>
-    `).join('');
+    `;
+    
+    try {
+      // Process each story to get cached images
+      const storyCards = await Promise.all(stories.map(async (story) => {
+        const imageUrl = await Api.getImageUrl(story.photoUrl);
+        return `
+          <div 
+            class="story-card bg-white rounded shadow-sm hover:shadow transition-shadow" 
+            role="article"
+            tabindex="0"
+            aria-label="Story by ${story.name}"
+          >
+            <div class="relative">
+              <img src="${imageUrl}" class="w-full h-32 object-cover rounded-t" alt="Story image by ${story.name}" loading="lazy">
+              ${story.lat && story.lon ? `
+                <div class="absolute bottom-1 right-1">
+                  <span class="inline-flex items-center px-1.5 py-0.5 bg-blue-600 text-white text-xs rounded-full">
+                    <i class="bi bi-geo-alt-fill mr-0.5" aria-hidden="true"></i> ${story.lat}, ${story.lon}
+                  </span>
+                </div>
+              ` : ''}
+            </div>
+            <div class="p-2">
+              <div class="flex items-center justify-between">
+                <h3 class="font-medium text-sm text-gray-800">${story.name}</h3>
+                <span class="text-xs text-gray-500">
+                  <i class="bi bi-calendar3" aria-hidden="true"></i> ${new Date(story.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <p class="text-xs text-gray-600 mt-1 line-clamp-2">${story.description}</p>
+              <div class="flex items-center justify-between gap-2 mt-1">
+                <a href="#/stories/${story.id}" class="inline-block text-xs text-blue-600 hover:text-blue-800" aria-label="View story details">
+                  See details <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
+                ${story.lat && story.lon ? `
+                  <button 
+                    class="navigate-btn inline-flex items-center text-xs text-green-600 hover:text-green-800"
+                    data-lat="${story.lat}"
+                    data-lon="${story.lon}"
+                    aria-label="View this story on map"
+                  >
+                    <i class="bi bi-geo-alt" aria-hidden="true"></i> View on map
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }));
 
-    // Menambahkan event listener untuk tombol navigasi
-    document.querySelectorAll('.navigate-btn').forEach(button => {
-      button.addEventListener('click', () => {
-        const lat = parseFloat(button.dataset.lat);
-        const lon = parseFloat(button.dataset.lon);
-        this.navigateToLocation(lat, lon);
+      // Update the stories list with the processed cards
+      storiesList.innerHTML = storyCards.join('');
+
+      // Menambahkan event listener untuk tombol navigasi
+      document.querySelectorAll('.navigate-btn').forEach(button => {
+        button.addEventListener('click', () => {
+          const lat = parseFloat(button.dataset.lat);
+          const lon = parseFloat(button.dataset.lon);
+          this.navigateToLocation(lat, lon);
+        });
       });
-    });
 
-    // Add keyboard navigation for story cards
-    document.querySelectorAll('.story-card').forEach(card => {
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const detailsLink = card.querySelector('a[href^="#/stories/"]');
-          if (detailsLink) {
-            detailsLink.click();
+      // Add keyboard navigation for story cards
+      document.querySelectorAll('.story-card').forEach(card => {
+        card.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const detailsLink = card.querySelector('a[href^="#/stories/"]');
+            if (detailsLink) {
+              detailsLink.click();
+            }
           }
-        }
+        });
       });
-    });
+    } catch (error) {
+      console.error('Error displaying stories:', error);
+      storiesList.innerHTML = `
+        <div class="text-center py-4" role="status" aria-live="polite">
+          <i class="bi bi-exclamation-circle text-2xl text-red-500" aria-hidden="true"></i>
+          <p class="mt-1 text-sm text-gray-500">Error loading stories</p>
+        </div>
+      `;
+    }
   }
 
   /**
@@ -327,7 +398,7 @@ export default class StoriesView {
   /**
    * Memperbarui marker di peta
    */
-  updateMap() {
+  async updateMap() {
     // Hapus marker lama
     if (this.#markers.length > 0) {
       this.#markers.forEach(marker => marker.remove());
@@ -337,28 +408,33 @@ export default class StoriesView {
     // Get stories from presenter
     const stories = this.#presenter.getStories();
 
-    // Tambahkan marker baru
-    stories.forEach(story => {
+    // Process each story to get cached images
+    for (const story of stories) {
       if (story.lat && story.lon) {
         const lat = parseFloat(story.lat);
         const lon = parseFloat(story.lon);
         
         if (!isNaN(lat) && !isNaN(lon)) {
-          const marker = L.marker([lat, lon])
-            .bindPopup(`
-              <div class="marker-popup">
-                <img src="${story.photoUrl}" class="w-full h-32 object-cover mb-2 rounded" alt="Story image">
-                <h3 class="font-medium">${story.name}</h3>
-                <p class="text-sm text-gray-600">${story.description}</p>
-                <a href="#/stories/${story.id}" class="text-xs text-blue-600 hover:text-blue-800">See details</a>
-              </div>
-            `);
-          
-          marker.addTo(this.#map);
-          this.#markers.push(marker);
+          try {
+            const imageUrl = await Api.getImageUrl(story.photoUrl);
+            const marker = L.marker([lat, lon])
+              .bindPopup(`
+                <div class="marker-popup">
+                  <img src="${imageUrl}" class="w-full h-32 object-cover mb-2 rounded" alt="Story image" loading="lazy">
+                  <h3 class="font-medium">${story.name}</h3>
+                  <p class="text-sm text-gray-600">${story.description}</p>
+                  <a href="#/stories/${story.id}" class="text-xs text-blue-600 hover:text-blue-800">See details</a>
+                </div>
+              `);
+            
+            marker.addTo(this.#map);
+            this.#markers.push(marker);
+          } catch (error) {
+            console.error('Error creating marker for story:', error);
+          }
         }
       }
-    });
+    }
   }
 
   /**

@@ -39,8 +39,8 @@ export default class StoriesPresenter {
       const result = await this.#model.loadStories();
       
       if (result.success) {
-        this.#view.displayStories();
-        this.#view.updateMap();
+        await this.#view.displayStories();
+        await this.#view.updateMap();
         this.#view.resetMapView();
       } else {
         this.#view.showError(result.message);
@@ -55,8 +55,13 @@ export default class StoriesPresenter {
    * Loads the next page of stories
    */
   async loadMoreStories() {
-    this.#model.nextPage();
-    await this.loadStories();
+    try {
+      this.#model.nextPage();
+      await this.loadStories();
+    } catch (error) {
+      console.error('Error in loadMoreStories:', error);
+      this.#view.showError('An error occurred while loading more stories');
+    }
   }
 
   /**
@@ -87,14 +92,26 @@ export default class StoriesPresenter {
   /**
    * Resets the map view to show all markers
    */
-  resetMapView() {
-    this.#view.resetMapView();
+  async resetMapView() {
+    try {
+      this.#view.resetMapView();
+      await this.#view.updateMap();
+    } catch (error) {
+      console.error('Error in resetMapView:', error);
+      this.#view.showError('An error occurred while resetting map view');
+    }
   }
 
   /**
    * Zooms to the user's current location
    */
-  zoomToCurrentLocation() {
-    this.#view.zoomToCurrentLocation();
+  async zoomToCurrentLocation() {
+    try {
+      await this.#view.zoomToCurrentLocation();
+      await this.#view.updateMap();
+    } catch (error) {
+      console.error('Error in zoomToCurrentLocation:', error);
+      this.#view.showError('An error occurred while zooming to current location');
+    }
   }
 } 
