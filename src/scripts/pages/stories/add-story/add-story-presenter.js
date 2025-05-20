@@ -34,50 +34,32 @@ export default class AddStoryPresenter {
 
   /**
    * Handles the form submission
-   * @param {Object} formData - Form data containing story details
+   * @param {FormData} formData - Form data containing story details
    */
   async submitForm(formData) {
-    // Validate form data
-    const validationResult = this.#model.validateStoryInput(formData);
-    
-    if (!validationResult.valid) {
-      this.#view.showError(validationResult.message);
-      return;
-    }
-
-    // Show loading state
-    this.#view.showLoading(true);
+    console.log('Submitting form with data:', {
+      description: formData.get('description'),
+      hasPhoto: formData.has('photo'),
+      hasLocation: formData.has('lat') && formData.has('lon')
+    });
 
     try {
-      // Create FormData object
-      const data = new FormData();
-      data.append('description', formData.description);
-      
-      if (formData.file) {
-        data.append('photo', formData.file);
-      } else if (formData.capturedBlob) {
-        data.append('photo', formData.capturedBlob, 'captured.jpg');
-      }
-      
-      if (formData.includeLocation) {
-        data.append('lat', formData.lat);
-        data.append('lon', formData.lon);
-      }
-
       // Add story via model
-      const result = await this.#model.addStory(data);
+      const result = await this.#model.addStory(formData);
       
       // Handle result
       if (result.success) {
         this.#view.showSuccess('Story added successfully');
-        window.location.hash = '#/stories';
+        // Only redirect if we're on the add story page
+        if (window.location.hash === '#/add-story') {
+          window.location.hash = '#/stories';
+        }
       } else {
         this.#view.showError(result.message);
-        this.#view.showLoading(false);
       }
     } catch (error) {
+      console.error('Error submitting story:', error);
       this.#view.showError('An error occurred while adding the story');
-      this.#view.showLoading(false);
     }
   }
 

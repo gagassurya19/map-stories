@@ -1,102 +1,104 @@
-const dbName = 'mapnotes-db';
-const dbVersion = 1;
-const objectStoreName = 'notes';
-const imageStoreName = 'images';
+import { openDB } from 'idb';
 
-const openDB = () => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, dbVersion);
-
-    request.onerror = (event) => {
-      reject('Error opening database');
-    };
-
-    request.onsuccess = (event) => {
-      resolve(event.target.result);
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(objectStoreName)) {
-        db.createObjectStore(objectStoreName, { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains(imageStoreName)) {
-        db.createObjectStore(imageStoreName, { keyPath: 'url' });
-      }
-    };
-  });
+const DATABASE_NAME = 'offline-stories';
+const DATABASE_VERSION = 1;
+const OBJECT_STORES = {
+  OFFLINE_STORIES: 'offline-stories',
+  STORIES: 'stories',
+  IMAGES: 'images'
 };
 
-const saveData = async (data) => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(objectStoreName, 'readwrite');
-    const store = transaction.objectStore(objectStoreName);
-    const request = store.put(data);
+const dbPromise = openDB(DATABASE_NAME, DATABASE_VERSION, {
+  upgrade(database) {
+    // Create object store for offline stories
+    if (!database.objectStoreNames.contains(OBJECT_STORES.OFFLINE_STORIES)) {
+      database.createObjectStore(OBJECT_STORES.OFFLINE_STORIES, { keyPath: 'id' });
+    }
+    
+    // Create object store for API stories
+    if (!database.objectStoreNames.contains(OBJECT_STORES.STORIES)) {
+      database.createObjectStore(OBJECT_STORES.STORIES, { keyPath: 'id' });
+    }
+    
+    // Create object store for images
+    if (!database.objectStoreNames.contains(OBJECT_STORES.IMAGES)) {
+      database.createObjectStore(OBJECT_STORES.IMAGES, { keyPath: 'url' });
+    }
+  },
+});
 
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('Error saving data');
-  });
+/**
+ * Menyimpan data ke IndexedDB
+ * @param {Object} data - Data yang akan disimpan
+ * @param {string} storeName - Nama object store (default: 'offline-stories')
+ * @returns {Promise<string>} ID data yang disimpan
+ */
+export const saveData = async (data, storeName = OBJECT_STORES.OFFLINE_STORIES) => {
+  console.log('Saving data:', data);
+  const db = await dbPromise;
+  console.log('Database opened successfully');
+  await db.put(storeName, data);
+  console.log('Data saved successfully:', data.id);
+  return data.id;
 };
 
-const saveImage = async (url, imageBlob) => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(imageStoreName, 'readwrite');
-    const store = transaction.objectStore(imageStoreName);
-    const request = store.put({ url, blob: imageBlob });
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('Error saving image');
-  });
+/**
+ * Mengambil semua data dari IndexedDB
+ * @param {string} storeName - Nama object store (default: 'offline-stories')
+ * @returns {Promise<Array>} Array of data
+ */
+export const getAllData = async (storeName = OBJECT_STORES.OFFLINE_STORIES) => {
+  console.log('Getting all data');
+  const db = await dbPromise;
+  console.log('Database opened successfully');
+  const data = await db.getAll(storeName);
+  console.log('All data retrieved successfully');
+  return data;
 };
 
-const getImage = async (url) => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(imageStoreName, 'readonly');
-    const store = transaction.objectStore(imageStoreName);
-    const request = store.get(url);
-
-    request.onsuccess = () => resolve(request.result?.blob);
-    request.onerror = () => reject('Error getting image');
-  });
+/**
+ * Mengambil data berdasarkan ID dari IndexedDB
+ * @param {string} id - ID data yang akan diambil
+ * @param {string} storeName - Nama object store (default: 'offline-stories')
+ * @returns {Promise<Object>} Data yang diambil
+ */
+export const getDataById = async (id, storeName = OBJECT_STORES.OFFLINE_STORIES) => {
+  const db = await dbPromise;
+  return db.get(storeName, id);
 };
 
-const getAllData = async () => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(objectStoreName, 'readonly');
-    const store = transaction.objectStore(objectStoreName);
-    const request = store.getAll();
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('Error getting data');
-  });
+/**
+ * Menghapus data dari IndexedDB
+ * @param {string} id - ID data yang akan dihapus
+ * @param {string} storeName - Nama object store (default: 'offline-stories')
+ * @returns {Promise<void>}
+ */
+export const deleteData = async (id, storeName = OBJECT_STORES.OFFLINE_STORIES) => {
+  console.log('Deleting data:', id);
+  const db = await dbPromise;
+  console.log('Database opened successfully');
+  await db.delete(storeName, id);
+  console.log('Data deleted successfully:', id);
 };
 
-const getDataById = async (id) => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(objectStoreName, 'readonly');
-    const store = transaction.objectStore(objectStoreName);
-    const request = store.get(id);
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('Error getting data');
-  });
+/**
+ * Menyimpan gambar ke IndexedDB
+ * @param {string} url - URL gambar
+ * @param {Blob} blob - Blob gambar
+ * @returns {Promise<void>}
+ */
+export const saveImage = async (url, blob) => {
+  const db = await dbPromise;
+  await db.put(OBJECT_STORES.IMAGES, { url, blob });
 };
 
-const deleteData = async (id) => {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(objectStoreName, 'readwrite');
-    const store = transaction.objectStore(objectStoreName);
-    const request = store.delete(id);
-
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject('Error deleting data');
-  });
-};
-
-export { saveData, getAllData, getDataById, deleteData, saveImage, getImage }; 
+/**
+ * Mengambil gambar dari IndexedDB
+ * @param {string} url - URL gambar
+ * @returns {Promise<Blob>} Blob gambar
+ */
+export const getImage = async (url) => {
+  const db = await dbPromise;
+  const data = await db.get(OBJECT_STORES.IMAGES, url);
+  return data ? data.blob : null;
+}; 

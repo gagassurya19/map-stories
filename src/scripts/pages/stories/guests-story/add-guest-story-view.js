@@ -75,7 +75,7 @@ export default class AddGuestStoryView {
 
             <!-- Modal Kamera -->
             <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;" role="dialog" aria-label="Modal pengambilan foto">
-              <div style="background: white; padding: 20px; border-radius: 10px; position: relative;">
+              <div style="background: white; padding: 20px; border-radius: 10px; position: relative; width: 400px; max-width: 90%;">
                 <video id="cameraStream" autoplay playsinline style="width: 100%; border-radius: 10px;" aria-label="Preview kamera"></video>
                 <button id="captureBtn" style="margin-top: 10px; padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 5px;" aria-label="Ambil foto">
                   Ambil Foto

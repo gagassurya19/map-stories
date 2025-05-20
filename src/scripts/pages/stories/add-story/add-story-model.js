@@ -1,11 +1,16 @@
 import Api from '../../../data/api';
 import Auth from '../../../utils/auth';
+import { getAllData, deleteData, saveData } from '../../../idb';
 
 /**
  * Model class for the add story page
  * Handles data operations and business logic
  */
 export default class AddStoryModel {
+  constructor() {
+    this._offlineStories = [];
+  }
+
   /**
    * Checks if the user is authenticated
    * @returns {boolean} True if user is authenticated
@@ -35,9 +40,24 @@ export default class AddStoryModel {
     }
 
     try {
+      console.log('Sending story to API with token:', user.token);
       const responseData = await Api.addStory(formData, user.token);
+      console.log('API response:', responseData);
 
       if (!responseData.error) {
+        // If this was an offline story, delete it from IndexedDB
+        const description = formData.get('description');
+        const stories = await getAllData('offline-stories');
+        const offlineStory = stories.find(story => 
+          story.isOffline && story.description === description
+        );
+        
+        if (offlineStory) {
+          console.log('Deleting offline story from IndexedDB:', offlineStory.id);
+          await deleteData(offlineStory.id, 'offline-stories');
+          console.log('Successfully deleted offline story from IndexedDB');
+        }
+
         return {
           success: true,
           message: 'Story added successfully'
@@ -93,5 +113,48 @@ export default class AddStoryModel {
     return {
       valid: true
     };
+  }
+
+  async syncOfflineStories() {
+    try {
+      // Get all offline stories
+      const offlineStories = await getAllData('offline-stories');
+      
+      for (const story of offlineStories) {
+        try {
+          // Create FormData from offline story
+          const formData = new FormData();
+          formData.append('description', story.description);
+          
+          // Convert base64 to Blob if needed
+          if (story.photoUrl && story.photoUrl.startsWith('data:')) {
+            const response = await fetch(story.photoUrl);
+            const blob = await response.blob();
+            formData.append('photo', blob, 'photo.jpg');
+          }
+          
+          // Add location if available
+          if (story.lat && story.lon) {
+            formData.append('lat', story.lat);
+            formData.append('lon', story.lon);
+          }
+
+          // Try to submit the story
+          const user = this.getUserData();
+          if (user && user.token) {
+            await Api.addStory(formData, user.token);
+            // If successful, delete from IndexedDB
+            await deleteData(story.id, 'offline-stories');
+          }
+        } catch (error) {
+          console.error('Error syncing story:', error);
+          // Continue with next story even if one fails
+          continue;
+        }
+      }
+    } catch (error) {
+      console.error('Error in syncOfflineStories:', error);
+      throw error;
+    }
   }
 } 

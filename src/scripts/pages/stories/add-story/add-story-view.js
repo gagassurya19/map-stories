@@ -2,6 +2,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import AddStoryModel from './add-story-model.js';
 import AddStoryPresenter from './add-story-presenter.js';
+import { saveData, getAllData, deleteData } from '../../../idb';
 
 /**
  * View class for the add story page
@@ -97,7 +98,7 @@ export default class AddStoryView {
 
             <!-- Modal Kamera -->
             <div id="cameraModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;" role="dialog" aria-label="Modal pengambilan foto">
-              <div style="background: white; padding: 20px; border-radius: 10px; position: relative;">
+              <div style="background: white; padding: 20px; border-radius: 10px; position: relative; width: 400px; max-width: 90%;">
                 <video 
                   id="cameraStream" 
                   autoplay 
@@ -208,6 +209,12 @@ export default class AddStoryView {
     this.#setupLocationEvents();
     this.#setupPhotoEvents();
     this.#setupFormSubmission();
+    this.#setupOnlineSync();
+
+    // Check if we're online and have offline stories to submit
+    if (navigator.onLine) {
+      await this.#syncOfflineStories();
+    }
   }
 
   /**
@@ -404,18 +411,97 @@ export default class AddStoryView {
     addStoryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      // Gather form data
-      const formData = {
-        description: document.getElementById('description').value.trim(),
-        file: document.getElementById('photoFile').files[0],
-        capturedBlob: this.#capturedBlob,
-        includeLocation: document.getElementById('includeLocation').checked,
-        lat: document.getElementById('latitude').value,
-        lon: document.getElementById('longitude').value
-      };
+      // Get and validate description
+      const description = document.getElementById('description').value.trim();
+      if (!description) {
+        this.showError('Please enter a story description');
+        return;
+      }
       
-      // Submit form via presenter
-      await this.#presenter.submitForm(formData);
+      // Get and validate photo
+      const photoFile = document.getElementById('photoFile').files[0];
+      if (!photoFile && !this.#capturedBlob) {
+        this.showError('Please add a photo to your story');
+        return;
+      }
+
+      // Validate photo size
+      const fileData = photoFile || this.#capturedBlob;
+      if (fileData.size > 1024 * 1024) { // 1MB in bytes
+        this.showError('Photo size must be less than 1MB');
+        return;
+      }
+      
+      // Create FormData object
+      const formData = new FormData();
+      formData.append('description', description);
+      
+      // Add photo to FormData
+      if (photoFile) {
+        formData.append('photo', photoFile);
+      } else if (this.#capturedBlob) {
+        formData.append('photo', this.#capturedBlob, 'photo.jpg');
+      }
+      
+      // Add location if included
+      const includeLocation = document.getElementById('includeLocation').checked;
+      if (includeLocation) {
+        const lat = document.getElementById('latitude').value;
+        const lon = document.getElementById('longitude').value;
+        if (lat && lon) {
+          formData.append('lat', lat);
+          formData.append('lon', lon);
+        }
+      }
+      
+      // Check if online
+      if (navigator.onLine) {
+        // Submit form via presenter if online
+        await this.#presenter.submitForm(formData);
+      } else {
+        // Save to IndexedDB if offline
+        try {
+          // Generate unique ID for offline story
+          const offlineId = `offline_${Date.now()}`;
+          
+          // Convert file/blob to base64 for storage
+          const base64Data = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(fileData);
+          });
+          
+          const offlineData = {
+            id: offlineId,
+            description: description,
+            photoUrl: base64Data,
+            createdAt: new Date().toISOString(),
+            isOffline: true
+          };
+
+          // Add location data if included
+          if (includeLocation) {
+            const lat = document.getElementById('latitude').value;
+            const lon = document.getElementById('longitude').value;
+            if (lat && lon) {
+              offlineData.lat = lat;
+              offlineData.lon = lon;
+            }
+          }
+
+          console.log('Saving offline story:', offlineData);
+          await saveData(offlineData);
+          this.showSuccess('Story saved offline. Will be submitted when online.');
+          
+          // Reset form
+          addStoryForm.reset();
+          document.getElementById('previewContainer').style.display = 'none';
+          this.#capturedBlob = null;
+        } catch (error) {
+          console.error('Error saving story offline:', error);
+          this.showError('Failed to save story offline. Please try again.');
+        }
+      }
     });
   }
 
@@ -425,6 +511,11 @@ export default class AddStoryView {
    */
   showLoading(isLoading) {
     const submitButton = document.querySelector('button[type="submit"]');
+    
+    // If we're not on the add story page, just return
+    if (!submitButton) {
+      return;
+    }
     
     if (isLoading) {
       submitButton.disabled = true;
@@ -440,6 +531,7 @@ export default class AddStoryView {
    * @param {string} message - Error message to display
    */
   showError(message) {
+    console.error('Error:', message);
     alert(message);
   }
 
@@ -448,6 +540,87 @@ export default class AddStoryView {
    * @param {string} message - Success message to display
    */
   showSuccess(message) {
+    console.log('Success:', message);
     alert(message);
+  }
+
+  /**
+   * Converts base64 data to Blob
+   * @param {string} base64 - Base64 data URL
+   * @param {string} mimeType - MIME type of the data
+   * @returns {Blob} Blob object
+   */
+  #base64ToBlob(base64, mimeType) {
+    const byteString = atob(base64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    
+    return new Blob([ab], { type: mimeType });
+  }
+
+  /**
+   * Syncs offline stories with the server
+   */
+  async #syncOfflineStories() {
+    try {
+      const stories = await getAllData();
+      console.log('Checking for offline stories:', stories);
+      
+      // Filter only offline stories
+      const offlineStories = stories.filter(story => story.isOffline);
+      
+      if (offlineStories.length > 0) {
+        console.log('Found offline stories to submit:', offlineStories);
+        
+        for (const story of offlineStories) {
+          try {
+            // Create FormData for submission
+            const formData = new FormData();
+            formData.append('description', story.description);
+            
+            // Convert base64 to Blob if needed
+            if (story.photoUrl && story.photoUrl.startsWith('data:')) {
+              const mime = story.photoUrl.match(/^data:(.*);base64,/)[1];
+              const blob = this.#base64ToBlob(story.photoUrl, mime);
+              formData.append('photo', blob, 'photo.jpg');
+            }
+            
+            // Add location if available
+            if (story.lat && story.lon) {
+              formData.append('lat', story.lat);
+              formData.append('lon', story.lon);
+            }
+            
+            console.log('Submitting offline story:', story.id);
+            await this.#presenter.submitForm(formData);
+            
+            // Delete from IndexedDB only after successful submission
+            console.log('Deleting story from IndexedDB:', story.id);
+            await deleteData(story.id);
+            console.log('Successfully deleted story from IndexedDB:', story.id);
+          } catch (error) {
+            console.error('Error submitting offline story:', story.id, error);
+            // Don't delete the story if submission failed
+            this.showError(`Failed to submit story. Will try again later.`);
+          }
+        }
+        
+        this.showSuccess('Offline stories submitted successfully.');
+      }
+    } catch (error) {
+      console.error('Error in syncOfflineStories:', error);
+      this.showError('Failed to sync offline stories.');
+    }
+  }
+
+  #setupOnlineSync() {
+    window.addEventListener('online', async () => {
+      console.log('Connection restored, checking for offline stories...');
+      await this.#syncOfflineStories();
+    });
   }
 }

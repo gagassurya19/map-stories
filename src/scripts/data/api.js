@@ -151,26 +151,31 @@ class Api {
       });
       const responseJson = await response.json();
       
-      // Cache the stories and their images in IndexedDB
-      if (responseJson.listStory) {
-        for (const story of responseJson.listStory) {
-          await saveData(story);
-          if (story.photoUrl) {
-            await this.fetchAndCacheImage(story.photoUrl);
-          }
+      if (responseJson.error) {
+        throw new Error(responseJson.message);
+      }
+
+      // Save stories to IndexedDB in stories store
+      const stories = responseJson.listStory;
+      for (const story of stories) {
+        await saveData(story, 'stories');
+        if (story.photoUrl) {
+          await this.fetchAndCacheImage(story.photoUrl);
         }
       }
       
       return responseJson;
     } catch (error) {
-      console.error('Error fetching stories:', error);
-      // If offline, try to get data from IndexedDB
-      const cachedStories = await getAllData();
-      return {
-        error: false,
-        message: 'Success',
-        listStory: cachedStories,
-      };
+      if (!navigator.onLine) {
+        // Get cached stories from IndexedDB
+        const cachedStories = await getAllData('stories');
+        return {
+          error: false,
+          message: 'Success',
+          listStory: cachedStories,
+        };
+      }
+      throw error;
     }
   }
 
@@ -224,6 +229,12 @@ class Api {
    */
   static async addStory(formData, token) {
     try {
+      console.log('Sending story to API:', {
+        description: formData.get('description'),
+        hasPhoto: formData.has('photo'),
+        hasLocation: formData.has('lat') && formData.has('lon')
+      });
+
       const response = await fetch(ENDPOINTS.STORIES, {
         method: 'POST',
         headers: {
@@ -231,7 +242,13 @@ class Api {
         },
         body: formData,
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const responseJson = await response.json();
+      console.log('API response:', responseJson);
       
       // Cache the new story in IndexedDB
       if (responseJson.story) {
@@ -243,7 +260,7 @@ class Api {
       console.error('Error adding story:', error);
       return {
         error: true,
-        message: 'Failed to add story',
+        message: error.message || 'Failed to add story',
       };
     }
   }

@@ -44,4 +44,48 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification click received:', event);
   event.notification.close();
+});
+
+const CACHE_NAME = 'my-app-cache-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  // Tambahkan file statis lain jika perlu, misal:
+  // '/assets/main.js',
+  // '/assets/main.css',
+  // '/favicon.png'
+];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        if (response) {
+          return response;
+        }
+        return fetch(event.request)
+          .then(response => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+            return response;
+          })
+          .catch(() => {
+            // Fallback ke index.html jika offline
+            return caches.match('/index.html');
+          });
+      })
+  );
 }); 
